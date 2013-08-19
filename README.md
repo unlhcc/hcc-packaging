@@ -9,6 +9,10 @@ packages for HCC.
 HCC uses the [OSG Koji](https://koji-hub.batlab.org/koji/) instance and
 the corresponding [osg-build software](https://twiki.grid.iu.edu/bin/view/SoftwareTeam/KojiWorkflow).
 
+For the most part, HCCs usage of these tools mirror OSG.  Below, I note the very basic
+steps for configuration, building, and promoting of existing packages.  Creating a new
+package is a workflow completely identical to the OSGs.
+
 Prereqs
 -------
 0.  Make sure you have a valid grid certificate [from the OSG](http://idmanager.opensciencegrid.org).
@@ -40,6 +44,10 @@ this will relax the extra git rules, but will not result in a package in the yum
 Promoting
 --------
 
-Builds automatically go to the nebraska-testing repo, not the production repo.  Tagging
-will need to be done with `osg-koji` for now; we are working to add support for `osg-promote`.
+Builds automatically go to the nebraska-testing repo, not the production repo.  To tag a
+package named `foo` into the release repo:
+
+    osg-promote --route hcc foo
+
+This requires `osg-build` version 1.2.8 or later.
 
