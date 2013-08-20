@@ -1,0 +1,212 @@
+#!/usr/bin/python
+
+import os
+import pwd
+import sys
+import stat
+import optparse
+import tempfile
+import ConfigParser
+
+default_config     = "/etc/xrootd/xrootd-gsi.cfg"
+default_cert       = "/etc/grid-security/xrd/xrdcert.pem"
+default_key        = "/etc/grid-security/xrd/xrdkey.pem"
+default_proxy      = "/etc/grid-security/xrd/xrdproxy.pem"
+default_xrootd_cfg = "/etc/xrootd/xrootd.cfg"
+default_user       = "xrootd"
+
+def parse_options():
+    parser = optparse.OptionParser()
+    parser.add_option("-c", "--config", help="Location of the configuration " \
+        "file", dest="config")
+    parser.add_option("-r", "--cron", help="Enable logic for the cron job; " \
+        "if destination proxy does not exist, it is a silent error.",
+        action="store_true", default=False, dest="cron")
+
+    opts, args = parser.parse_args()
+
+    config = opts.config
+    if not config:
+        if not os.path.exists(default_config):
+            parser.print_usage()
+            raise Exception("Must pass a configuration file (default %s does " \
+                "not exist)." % default_config)
+        config = default_config
+    cp = ConfigParser.ConfigParser()
+    cp.read(config)
+
+    try:
+        if opts.cron:
+            cp.set("xrootd-gsi", "cron", "true")
+        else:
+            cp.set("xrootd-gsi", "cron", "false")
+    except:
+        print "Internal error: Unable to set cron-mode."
+    return cp
+
+def parse_xrootd_cfg(cp):
+    # Parse the xrootd cfg; returns the filename of the cert and key.
+    cert = default_cert
+    key  = default_key
+    try:
+        cfg = cp.get("xrootd-gsi", "xrootd_config")
+    except:
+        cfg = default_xrootd_cfg
+    try:
+        fd = open(cfg, 'r')
+        for line in fd.readlines():
+            if not line.startswith("sec.protocol"):
+                continue
+            tokens = line.strip().split()
+            for token in tokens:
+                if token.startswith("-cert:"):
+                    cert = token.split("-cert:")[-1]
+                if token.startswith("-key:"):
+                    key = token.split("-key:")[-1]
+    finally:
+        return cert, key
+
+def get_xrootd_user(fd):
+    xrootd_user = default_user
+    for line in fd.readlines():
+        if not line.startswith("XROOTD_USER"):
+            continue
+        xrootd_user = line.split("XROOTD_USER=")[-1].split()[0]
+    return xrootd_user
+
+def parse_xrootd_user(cfg = "/etc/sysconfig/xrootd"):
+    fd = os.popen("source %s; env | grep XROOTD_USER" % cfg)
+    return get_xrootd_user(fd)
+
+def init_host_proxy(hostcert, hostkey, proxy):
+    pid = os.fork()
+    if pid == 0: # Child
+        os.environ['X509_USER_CERT'] = hostcert
+        os.environ['X509_USER_KEY'] = hostkey
+        sys.stdin.close()
+        os.execvp("grid-proxy-init", ["grid-proxy-init", "-out", str(proxy)])
+        os._exit(1)
+    pid, status = os.waitpid(pid, 0)
+    while not os.WIFEXITED(status):
+        status = os.waitpid(pid, 0)
+    status = os.WEXITSTATUS(status)
+    if status != 0:
+        raise Exception("Unable to create a host grid proxy.")
+
+def renew_proxy(myproxy_server, input_proxy, output_proxy):
+    os.environ["X509_USER_PROXY"] = input_proxy
+    cmd = "myproxy-logon"
+    args = ["-d", "-s", myproxy_server, "-a", output_proxy, "-n", "-k",
+        "xrootd-gsi", "-t", "168"]
+    print " ".join(args)
+    fd = os.popen("%s %s" % (cmd, " ".join(args)))
+    print fd.read()
+    if fd.close():
+        raise Exception("Unable to retrieve a proxy from myproxy server.")
+
+def upgrade_proxy(voms_ext, proxy_file):
+    voms_name = voms_ext.split("/")[1]
+    pid = os.fork()
+    if pid == 0:
+        os.environ['X509_USER_PROXY'] = proxy_file
+        sys.stdin.close()
+        args = ['voms-proxy-init', '-noregen', '-out', proxy_file, '-voms', '%s:%s' % (voms_name, voms_ext), '-valid', '167:57']
+        os.execvp("voms-proxy-init", args)
+        os._exit(1)
+    pid, status = os.waitpid(pid, 0)
+    while not os.WIFEXITED(status):
+        status = os.waitpid(pid, 0)
+    status = os.WEXITSTATUS(status)
+    if status != 0:
+        raise Exception("Unable to upgrade proxy file %s to have VOMS extension %s" % (proxy_file, voms_ext))
+
+def check_perms(file, key=False):
+    try:
+        open(file, "r")
+    except:
+        raise Exception("Unable to open %s; necessary for proxy retrieval" % \
+            file)
+    st = os.stat(file)
+    id = os.geteuid()
+    if id != st.st_uid:
+        raise Exception("File %s must be owned by current UID, %i" % (file, id))
+    if key and ((st.st_mode & stat.S_IRWXG) or (st.st_mode & stat.S_IRWXO)):
+        raise Exception("Overly permissive mode on %s; change to 0600 or " \
+            "0400." % file)
+
+def main():
+    cp = parse_options()
+
+    try:
+        proxy = cp.get("xrootd-gsi", "xrootd_proxy")
+    except:
+        proxy = default_proxy
+
+    try:
+        user = cp.get("xrootd-gsi", "xrootd_user")
+    except:
+        user = parse_xrootd_user()
+    id = os.geteuid()
+    pw = pwd.getpwnam(user)
+    target_uid = pw.pw_uid
+    target_gid = pw.pw_gid
+    if id == 0 and target_uid != 0:
+        os.setgid(target_gid)
+        os.setuid(target_uid)
+    elif pwd.getpwnam(user).pw_uid != id:
+        raise Exception("Unable to switch to user %s because you are not " \
+            "root." % user)
+
+    # In cron mode, exit 0 if the destination proxy doesn't exist.
+    # Prevents from loud complaints from the cron job prior to the system
+    # being initialized.
+    try:
+        cron = cp.getboolean("xrootd-gsi", "cron")
+        if cron and not os.path.exists(proxy):
+            return
+    except:
+        cron = False
+    if cron:
+        if not os.path.exists(proxy):
+            return
+        os.close(0)
+        os.close(1)
+        os.close(2)
+        os.open("/dev/null", os.O_RDWR)
+        os.dup(0)
+        os.dup(1)
+
+    myproxy_server = cp.get("xrootd-gsi", "myproxy_server")
+    try:
+        voms_ext = cp.get("xrootd-gsi", "voms_extension")
+    except:
+        voms_ext = None
+    hostcert, hostkey = parse_xrootd_cfg(cp)
+    try:
+        hostcert = cp.get("xrootd-gsi", "xrootd_cert")
+    except:
+        pass
+    try:
+        hostkey = cp.get("xrootd-gsi", "xrootd_key")
+    except:  
+        pass
+
+    check_perms(proxy, key=True)
+    check_perms(hostkey, key=True)
+    check_perms(hostcert, key=False)
+
+    _, tmp_proxy = tempfile.mkstemp(prefix="xrootd_tmp_proxy_")
+
+    try:
+        init_host_proxy(hostcert, hostkey, tmp_proxy)
+        renew_proxy(myproxy_server, tmp_proxy, proxy)
+        if voms_ext:
+            upgrade_proxy(voms_ext, tmp_proxy)
+        os.rename(tmp_proxy, proxy)
+    except:
+        os.unlink(tmp_proxy)
+        raise
+
+if __name__ == '__main__':
+    main()
+

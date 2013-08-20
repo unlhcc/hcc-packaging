@@ -1,0 +1,74 @@
+#!/usr/bin/python
+
+import os
+import time
+import optparse
+import ConfigParser
+
+default_config = "/etc/xrootd/xrootd-gsi.cfg"
+
+def parse_options():
+    parser = optparse.OptionParser()
+    parser.add_option("-c", "--config", help="Location of the configuration " \
+        "file", dest="config")
+
+    opts, args = parser.parse_args()
+
+    config = opts.config
+    if not config:
+        if not os.path.exists(default_config):
+            parser.print_usage()
+            raise Exception("Must pass a configuration file (default config" \
+                " %s does not exist)." % default_config)
+        config = default_config
+    cp = ConfigParser.ConfigParser()
+    cp.read(config)
+    return cp
+
+def get_usercert_filename():
+    return os.path.expanduser(os.environ.get("X509_USER_CERT", "~/.globus/" \
+        "usercert.pem"))
+
+def get_lifetime():
+    fname = get_usercert_filename()
+    fd = os.popen("openssl x509 -in %s -noout -enddate" % fname)
+    output = fd.read()
+    if fd.close():
+        raise Exception("Unable to examine usercert %s to get enddate." % fname)
+    ttuple = time.strptime(output, "notAfter=%b %d %H:%M:%S %Y GMT\n")
+    expire = time.mktime(ttuple)
+    hours_left = int((expire - time.time() - 86400)/3600) - 1
+    return max(0, hours_left)
+
+def get_subject():
+    fname = get_usercert_filename()
+    fd = os.popen("openssl x509 -in %s -noout -subject " % fname)
+    output = fd.read()
+    if fd.close():
+        raise Exception("Unable to examine usercert %s to get subject." % fname)
+    subject = output.split("subject= ")[-1]
+    return subject
+
+def init_proxy(cn, lifetime, server):
+    args = ["-d", "-s", cn, "-Z", cn, "-R", cn, "-r", cn,
+        "-X", "-n", "-k", "xrootd-gsi", "-c", str(lifetime), "-s", server,
+        "-t", "168"]
+    os.environ["GT_PROXY_MODE"] = "old"
+    #print "%s" % " ".join(args)
+    fd = os.popen("myproxy-init %s" % " ".join(args))
+    fd.read()
+    if fd.close():
+        raise Exception("Unable to initialize proxy.")
+
+def main():
+    cp = parse_options()
+    xrd_server_cn = cp.get("xrootd-gsi", "server_cn_pattern")
+    lifetime = cp.getint("xrootd-gsi", "proxy_lifetime_hours")
+    myproxy_server = cp.get("xrootd-gsi", "myproxy_server")
+    if lifetime < 0:
+        lifetime = get_lifetime()
+    init_proxy(xrd_server_cn, lifetime, myproxy_server)
+
+if __name__ == "__main__":
+    main()
+
