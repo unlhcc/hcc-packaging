@@ -31,7 +31,8 @@ Requires:       rrdtool-python
 
 
 %prep
-%setup -q
+# github project has underscore
+%setup -n htcondor_jobview-%{version}
 
 
 %build
