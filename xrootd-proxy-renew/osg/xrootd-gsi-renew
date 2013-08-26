@@ -195,7 +195,11 @@ def main():
     check_perms(hostkey, key=True)
     check_perms(hostcert, key=False)
 
-    _, tmp_proxy = tempfile.mkstemp(prefix="xrootd_tmp_proxy_")
+    # NOTE: do not let mkstemp generate the proxy just anywhere (usually, /tmp).
+    # If /tmp and the final destination are on different filesystems, then
+    # the final rename will cause an error.
+    dest_dir = os.path.split(proxy)[0]
+    _, tmp_proxy = tempfile.mkstemp(prefix="xrootd_tmp_proxy_", dir=dest_dir)
 
     try:
         init_host_proxy(hostcert, hostkey, tmp_proxy)

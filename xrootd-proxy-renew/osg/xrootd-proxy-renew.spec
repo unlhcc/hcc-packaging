@@ -1,7 +1,7 @@
 
 Name:      xrootd-proxy-renew
-Version:   0.3
-Release:   2%{?dist}
+Version:   0.4
+Release:   1%{?dist}
 Summary:   Scripts for renewing a proxy for Xrootd usage
 
 Group:     System Environment/Daemons
@@ -44,6 +44,9 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) %{_sysconfdir}/xrootd/xrootd-gsi.cfg
 
 %changelog
+* Mon Aug 26 2013 Brian Bockelman <bbockelm@cse.unl.edu> - 0.4-1
+- Make sure things are renewed on the correct filesystem.
+
 * Sat Oct 15 2011 Brian Bockelman <bbockelm@cse.unl.edu> - 0.3-2
 - Forgot to increase lifetime of myproxy-logon command.
 
