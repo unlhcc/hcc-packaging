@@ -86,7 +86,7 @@ PreReq: initscripts >= 5.00
 %else
 Requires: initscripts >= 5.20
 %endif
-BuildRequires: perl, openssl-devel, tcp_wrappers, tcp_wrappers-devel
+BuildRequires: perl, openssl-devel, tcp_wrappers, tcp_wrappers-devel, pam-devel
 BuildRequires: /bin/login
 %if ! %{build6x}
 BuildRequires: glibc-devel, pam
