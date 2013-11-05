@@ -3,7 +3,7 @@
 
 Name: duo_unix
 Version: 1.9.5
-Release: 1%{?dist}
+Release: 2%{?dist}
 Epoch: 0
 Summary: Duo two-factor authentication for Unix systems
 Packager: S. Zachariah Sprackett <zac@sprackett.com>
@@ -86,7 +86,7 @@ rm -f $RPM_BUILD_ROOT/%{_lib}/security/pam_duo.*a
 %files -n pam_duo
 %dir %{_sysconfdir}/duo
 /%{_lib}/security/pam_duo.so
-%config(noreplace) %attr(640, root, root) %{_sysconfdir}/duo/pam_duo.conf
+%config(noreplace) %attr(600, root, root) %{_sysconfdir}/duo/pam_duo.conf
 %{_mandir}/man8/pam_duo.8.gz
 
 %files -n %{libname}
@@ -103,6 +103,9 @@ rm -f $RPM_BUILD_ROOT/%{_lib}/security/pam_duo.*a
 %{_mandir}/man3/duo.3.gz
 
 %changelog
+* Tue Nov 05 2013 Derek Weitzel <dweitzel@cse.unl.edu> - 0:1.9.5-2
+- Changing pam_duo.conf from 640 to 600
+
 * Tue Nov 05 2013 Derek Weitzel <dweitzel@cse.unl.edu> - 0:1.9.5-1
 - Adding dist tag to release
 
