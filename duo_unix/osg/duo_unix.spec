@@ -3,7 +3,7 @@
 
 Name: duo_unix
 Version: 1.9.5
-Release: 0
+Release: 1%{?dist}
 Epoch: 0
 Summary: Duo two-factor authentication for Unix systems
 Packager: S. Zachariah Sprackett <zac@sprackett.com>
@@ -103,6 +103,9 @@ rm -f $RPM_BUILD_ROOT/%{_lib}/security/pam_duo.*a
 %{_mandir}/man3/duo.3.gz
 
 %changelog
+* Tue Nov 05 2013 Derek Weitzel <dweitzel@cse.unl.edu> - 0:1.9.5-1
+- Adding dist tag to release
+
 * Thu Aug 22 2013 Mark Stanislav <mark.stanislav@gmail.com> 0:1.9.3-0
 - Fixed documentation path for files breaking RPM build
 * Fri Sep 1 2011 R.I.Pienaar <rip@devco.net> 0:1.8-0
