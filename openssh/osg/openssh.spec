@@ -92,7 +92,7 @@ BuildRequires: tcp_wrappers-devel
 %endif
 BuildRequires: /bin/login
 %if ! %{build6x}
-BuildPreReq: glibc-devel, pam
+BuildRequires: glibc-devel, pam
 %else
 BuildRequires: /usr/include/security/pam_appl.h
 %endif
