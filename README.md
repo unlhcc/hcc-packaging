@@ -26,7 +26,7 @@ Setting up your build environment
 0.  Install the OSG repo RPM ([el5](http://repo.grid.iu.edu/osg-el5-release-latest.rpm) or [el6](http://repo.grid.iu.edu/osg-el6-release-latest.rpm)).
 1.  Install the osg-build RPM (`yum install osg-build`).  You need version >= 1.2.7 (you may need to `--enablerepo=osg-development`)
 2.  Clone the git repo (`git clone git@github.com:unlhcc/hcc-packaging.git`)
-3.  If newbie to git account, remember setting up ssh pub keys from where you clone the git repo
+3.  If newbie to git account, remember add in git profile your ssh pub keys from where you'll clone the git repo
 3.  Install the basic OSG koji configuration files: `osg-koji setup`.
 
 Building
