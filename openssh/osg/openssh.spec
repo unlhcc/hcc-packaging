@@ -88,7 +88,7 @@ Requires: initscripts >= 5.20
 %endif
 BuildRequires: perl, openssl-devel, tcp_wrappers, pam-devel
 %if %{build6x}
-BuildRequires: tcp_wrappers-devel
+BuildRequires: tcp_wrappers-devel, tcp_wrappers-libs
 %endif
 BuildRequires: /bin/login
 %if ! %{build6x}
