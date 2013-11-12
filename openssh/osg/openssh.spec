@@ -24,7 +24,9 @@
 %define gtk2 1
 
 # Is this build for RHL 6.x?
-%define build6x 0
+%if %{el6}
+%define build6x 1
+%endif
 
 # Do we want kerberos5 support (1=yes 0=no)
 %define kerberos5 1
