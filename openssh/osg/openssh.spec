@@ -1,4 +1,4 @@
-%define ver 6.4p1
+%define ver 6.6p1
 %define rel 1%{?dist}
 
 # OpenSSH privilege separation requires a user & group ID
@@ -94,7 +94,7 @@ BuildRequires: tcp_wrappers-devel, tcp_wrappers-libs
 %endif
 BuildRequires: /bin/login
 %if ! %{build6x}
-BuildRequires: glibc-devel, pam
+BuildPreReq: glibc-devel, pam
 %else
 BuildRequires: /usr/include/security/pam_appl.h
 %endif
