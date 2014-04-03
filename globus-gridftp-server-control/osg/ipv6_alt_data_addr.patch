@@ -1,0 +1,11 @@
+--- globus_gridftp_server_control-2.10/globus_gridftp_server_control_commands.c.orig	2014-04-02 21:44:34.383271312 -0500
++++ globus_gridftp_server_control-2.10/globus_gridftp_server_control_commands.c	2014-04-02 21:45:11.336295333 -0500
+@@ -2033,7 +2033,7 @@
+                 goto err;
+             }
+             
+-            if(0)
++            if(1)
+             {
+                 msg = globus_common_create_string(
+                     "%d Entering Passive Mode (|%d|%s|%d|)\r\n",
