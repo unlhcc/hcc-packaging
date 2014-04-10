@@ -23,8 +23,8 @@
 # Use GTK2 instead of GNOME in gnome-ssh-askpass
 %define gtk2 1
 
-# Is this build for RHL 6.x?
-%if %{el6}
+# Is this build for el6?
+%if 0%{?rhel} >= 6
 %define build6x 1
 %endif
 
@@ -40,9 +40,6 @@
 # RedHat <= 7.2 and Red Hat Advanced Server 2.1 are examples.
 # rpm -ba|--rebuild --define 'no_gtk2 1'
 %{?no_gtk2:%define gtk2 0}
-
-# Is this a build for RHL 6.x or earlier?
-%{?build_6x:%define build6x 1}
 
 # If this is RHL 6.x, the default configuration has sysconfdir in /usr/etc.
 %if %{build6x}
