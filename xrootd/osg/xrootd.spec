@@ -212,7 +212,7 @@ tool.
 Summary:	Developer documentation for the xrootd libraries
 Group:		Documentation
 %if %{?fedora}%{!?fedora:0} >= 10 || %{?rhel}%{!?rhel:0} >= 6
-BuildArch:	noarch
+#BuildArch:	noarch
 %endif
 
 %description doc
