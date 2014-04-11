@@ -4,7 +4,7 @@
 Name:      xrootd4
 Epoch:     1
 Version:   4.0.0
-Release:   0.pre1%{?dist}%{?_with_cpp11:.cpp11}%{?_with_clang:.clang}
+Release:   0.pre2%{?dist}%{?_with_cpp11:.cpp11}%{?_with_clang:.clang}
 Summary:   Extended ROOT file server
 Group:     System Environment/Daemons
 License:   LGPLv3+
@@ -86,6 +86,7 @@ latency and increased throughput.
 Summary:	Libraries used by xrootd servers and clients
 Group:		System Environment/Libraries
 Obsoletes: xrootd-libs
+Provides: xrootd-libs = 1:%{version}-%{release}
 
 %description libs
 This package contains libraries used by the xrootd servers and clients.
@@ -125,6 +126,7 @@ Group:		Development/Libraries
 Requires:	%{name}-devel%{?_isa} = %{epoch}:%{version}-%{release}
 Requires:	%{name}-client-libs%{?_isa} = %{epoch}:%{version}-%{release}
 Obsoletes: xrootd-client-devel
+Provides: xrootd-client-devel = 1:%{version}-%{release}
 
 %description client-devel
 This package contains header files and development libraries for xrootd
@@ -185,6 +187,7 @@ Group:		Applications/Internet
 Requires:	%{name}-libs%{?_isa} = %{epoch}:%{version}-%{release}
 Requires:	%{name}-client-libs%{?_isa} = %{epoch}:%{version}-%{release}
 Obsoletes: xrootd-client
+Provides: xrootd-client = 1:%{version}-%{release}
 
 %description client
 This package contains the command line tools used to communicate with
@@ -200,6 +203,7 @@ Requires:	%{name}-libs%{?_isa} = %{epoch}:%{version}-%{release}
 Requires:	%{name}-client-libs%{?_isa} = %{epoch}:%{version}-%{release}
 Requires:	fuse
 Obsoletes: xrootd-fuse
+Provides: xrootd-fuse = 1:%{version}-%{release}
 
 %description fuse
 This package contains the FUSE (file system in user space) xrootd mount
@@ -576,6 +580,9 @@ semodule -R
 # Changelog
 #-------------------------------------------------------------------------------
 %changelog
+* Fri Apr 11 2014 Brian Bockelman <bbockelm@cse.unl.edu> - 1:4.0.0-0.pre2
+- Add a few more provide statements.
+
 * Tue Apr 01 2014 Lukasz Janyst <ljanyst@cern.ch>
 - correct the license field (LGPLv3+)
 - rename to xrootd4
