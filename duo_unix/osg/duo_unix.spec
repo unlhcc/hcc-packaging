@@ -2,8 +2,8 @@
 %define develname duo_unix-devel
 
 Name: duo_unix
-Version: 1.9.5
-Release: 2%{?dist}
+Version: 1.9.11
+Release: 0%{?dist}
 Epoch: 0
 Summary: Duo two-factor authentication for Unix systems
 Packager: S. Zachariah Sprackett <zac@sprackett.com>
@@ -103,6 +103,9 @@ rm -f $RPM_BUILD_ROOT/%{_lib}/security/pam_duo.*a
 %{_mandir}/man3/duo.3.gz
 
 %changelog
+* Tue May 27 2014 Garhan Attebury <garhan.attebury@unl.edu> - 0:1.9.11-0
+- Update to 1.9.11
+
 * Tue Nov 05 2013 Derek Weitzel <dweitzel@cse.unl.edu> - 0:1.9.5-2
 - Changing pam_duo.conf from 640 to 600
 
