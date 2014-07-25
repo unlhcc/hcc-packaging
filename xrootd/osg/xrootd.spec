@@ -256,7 +256,7 @@ This package contains a set of CPPUnit tests for xrootd.
 %setup -c -n xrootd
 
 %build
-cd xrootd
+cd xrootd-4.0.2
 mkdir build
 cd build
 
@@ -287,7 +287,7 @@ doxygen Doxyfile
 # Installation
 #-------------------------------------------------------------------------------
 %install
-cd xrootd
+cd xrootd-4.0.2
 cd build
 rm -rf $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
