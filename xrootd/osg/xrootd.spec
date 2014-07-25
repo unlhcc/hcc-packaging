@@ -13,7 +13,7 @@ URL:       http://xrootd.org/
 # git clone http://xrootd.org/repo/xrootd.git xrootd
 # cd xrootd
 # git-archive master | gzip -9 > ~/rpmbuild/SOURCES/xrootd.tgz
-Source0:   xrootd.tar.gz
+Source0:   xrootd-%{version}.tar.gz
 
 BuildRoot: %{_tmppath}/%{name}-root
 
