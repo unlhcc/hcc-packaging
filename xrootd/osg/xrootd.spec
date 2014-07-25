@@ -3,8 +3,8 @@
 #-------------------------------------------------------------------------------
 Name:      xrootd4
 Epoch:     1
-Version:   4.0.0
-Release:   0.pre2%{?dist}%{?_with_cpp11:.cpp11}%{?_with_clang:.clang}
+Version:   4.0.2
+Release:   1%{?dist}
 Summary:   Extended ROOT file server
 Group:     System Environment/Daemons
 License:   LGPLv3+
