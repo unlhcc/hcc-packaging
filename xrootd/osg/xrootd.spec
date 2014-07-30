@@ -470,6 +470,7 @@ semodule -R
 %{_includedir}/xrootd/XrdOuc
 %{_includedir}/xrootd/XrdSec
 %{_includedir}/xrootd/XrdSys
+%{_includedir}/xrootd/XrdHttp
 %{_includedir}/xrootd/XrdVersion.hh
 %{_includedir}/xrootd/XrdVersionPlugin.hh
 # These libraries are not used as plugins
