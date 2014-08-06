@@ -1,0 +1,8 @@
+--- externals/pacparser/src/makeHook.sh.orig	2014-08-06 08:28:29.241612579 -0500
++++ externals/pacparser/src/makeHook.sh	2014-08-06 08:28:37.919593052 -0500
+@@ -1,4 +1,5 @@
+ #!/bin/sh
++set -x
+ 
+ make -C src
+ mkdir src/static
