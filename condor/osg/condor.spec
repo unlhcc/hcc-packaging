@@ -83,6 +83,7 @@
 %define cream 0
 %if 0%{?rhel} >= 7
 %define aviary 0
+%define std_univ 0
 %else
 %define aviary 1
 %endif
