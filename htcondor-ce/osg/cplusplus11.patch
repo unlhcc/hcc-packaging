@@ -1,0 +1,26 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -7,6 +7,8 @@ set( CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
+ 
+ find_package( Classad REQUIRED )
+ 
++include(CheckCXXCompilerFlag)
++
+ find_package(PkgConfig)
+ pkg_check_modules( GLOBUS_RSL REQUIRED globus-rsl )
+ 
+@@ -14,6 +16,14 @@ if( CMAKE_COMPILER_IS_GNUCXX )
+   set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror" )
+ endif( CMAKE_COMPILER_IS_GNUCXX )
+ 
++# Compiling against classad headers fail due to the usage of C++11
++# on RHEL7.  This CMake compiler test was taken from the HTCondor cmake.
++check_cxx_compiler_flag(-std=c++11 cxx_11)
++if (cxx_11)
++  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
++endif (cxx_11)
++
++
+ string(REPLACE ";" " " _GLOBUS_RSL_CFLAGS_OTHER "${GLOBUS_RSL_CFLAGS_OTHER}" )
+ 
+ link_directories ( ${GLOBUS_RSL_LIBRARY_DIRS} )
