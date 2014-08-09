@@ -24,3 +24,16 @@
  string(REPLACE ";" " " _GLOBUS_RSL_CFLAGS_OTHER "${GLOBUS_RSL_CFLAGS_OTHER}" )
  
  link_directories ( ${GLOBUS_RSL_LIBRARY_DIRS} )
+@@ -45,8 +55,10 @@ configure_file (
+   "${CMAKE_CURRENT_BINARY_DIR}/config/01-ce-router-defaults.conf"
+ )
+ 
+-install(TARGETS eval_rsl LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}/condor")
+-install(TARGETS classad_ce LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}/condor")
++set(LIB_INSTALL_DIR lib${LIB_SUFFIX})
++
++install(TARGETS eval_rsl LIBRARY DESTINATION "${CMAKE_INSTALL_PREFIX}/${LIB_INSTALL_DIR}/condor")
++install(TARGETS classad_ce LIBRARY DESTINATION "${CMAKE_INSTALL_PREFIX}/${LIB_INSTALL_DIR}/condor")
+ 
+ install(PROGRAMS src/condor-ce DESTINATION ${SYSCONF_INSTALL_DIR}/rc.d/init.d)
+ install(PROGRAMS src/condor_ce_env_bootstrap src/condor_ce_router_defaults src/osg-wrapper DESTINATION ${SHARE_INSTALL_PREFIX}/condor-ce)
