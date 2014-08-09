@@ -1290,8 +1290,12 @@ rm -rf %{buildroot}
 %_sbindir/remote_gahp
 %_sbindir/nordugrid_gahp
 %_sbindir/gce_gahp
+%if %uw_build
 %_sbindir/boinc_gahp
+%endif
+%if %cream || %uw_build
 %_sbindir/cream_gahp
+%endif
 %_libexecdir/condor/condor_gpu_discovery
 %_sbindir/condor_vm_vmware
 %config(noreplace) %_sysconfdir/condor/condor_config.local
