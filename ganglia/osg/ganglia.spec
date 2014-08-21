@@ -1,20 +1,18 @@
 #
 #
-# ganglia.spec.  Generated from ganglia.spec.in by configure.
-#
 # IMPORTANT NOTE:
 # This spec file has conditional constructs using the noarch target.
 # To get all packages build you must include noarch and your real target
 # (ex: i386, i686, x86_64) when calling rpmbuild as shown by the following
 # command line aimed at 80386 or higher CPUs :
 #
-# % rpmbuild -ta --target noarch,i386 ganglia-3.6.0.tar.gz
+# % rpmbuild -ta --target noarch,i386 ganglia-3.7.0.tar.gz
 #
 %{!?python_sitelib: %define python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
 
 Summary: Ganglia Distributed Monitoring System
 Name: ganglia
-Version: 3.6.0
+Version: 3.7.0
 URL: http://ganglia.info/
 # The Release macro value is set in configure.ac, please update it there.
 Release: 1%{?dist}
@@ -52,7 +50,7 @@ Obsoletes: ganglia-webfrontend < %{version}
 Provides: ganglia-webfrontend = %{version}
 # We should put rrdtool as a Requires too but rrdtool rpm support is very weak
 # so most people install from source
-#Requires: ganglia-gmetad >=  3.6.0
+#Requires: ganglia-gmetad >=  3.7.0
 Requires: php >= 5, php-gd, php-xml
 %if 0%{?suse_version}
 %define web_prefixdir /srv/www/htdocs/ganglia
@@ -187,7 +185,11 @@ make
 %ifnarch noarch
 
 %post gmetad
+%if 0%{?_unitdir:1}
+/bin/systemctl enable gmetad
+%else
 /sbin/chkconfig --add gmetad
+%endif
 
 if [ -e /etc/gmetad.conf ]; then
   %__mv /etc/gmetad.conf %{conf_dir}
@@ -197,7 +199,11 @@ fi
 #/sbin/chkconfig --add gmetad-python
 
 %post gmond
+%if 0%{?_unitdir:1}
+/bin/systemctl enable gmond
+%else
 /sbin/chkconfig --add gmond
+%endif
 
 LEGACY_GMOND_CONF=%{conf_dir}/gmond.conf
 if [ -e /etc/gmond.conf ];
@@ -243,8 +249,13 @@ fi
 %preun gmetad
 if [ "$1" = 0 ]
 then
+%if 0%{?_unitdir:1}
+   /bin/systemctl stop gmetad
+   /bin/systemctl disable gmetad
+%else
    /etc/init.d/gmetad stop
    /sbin/chkconfig --del gmetad
+%endif
 fi
 
 #%preun gmetad-python
@@ -257,8 +268,13 @@ fi
 %preun gmond
 if [ "$1" = 0 ]
 then
+%if 0%{?_unitdir:1}
+   /bin/systemctl stop gmond
+   /bin/systemctl disable gmond
+%else
    /etc/init.d/gmond stop
    /sbin/chkconfig --del gmond
+%endif
 fi
 
 %post   -n libganglia -p /sbin/ldconfig
@@ -287,10 +303,14 @@ fi
 %else
 
 # Create the directory structure
+%if 0%{?!_unitdir:1}
 %__install -d -m 0755 $RPM_BUILD_ROOT/etc/init.d
+%endif
 %__install -d -m 0755 $RPM_BUILD_ROOT/etc/sysconfig
 %__install -d -m 0755 $RPM_BUILD_ROOT/var/lib/ganglia/rrds
 
+# If we are not using systemd, we need to install initrd files.
+%if 0%{?!_unitdir:1}
 # Move the files into the structure
 %if 0%{?suse_version}
    %__cp -f gmond/gmond.init.SuSE $RPM_BUILD_ROOT/etc/init.d/gmond
@@ -302,6 +322,7 @@ fi
    %__cp -f gmetad/gmetad.init $RPM_BUILD_ROOT/etc/init.d/gmetad
    #sed -e 's/sbin\/gmetad/sbin\/gmetad.py/' gmetad/gmetad.init > $RPM_BUILD_ROOT/etc/init.d/gmetad-python
    #chmod +x $RPM_BUILD_ROOT/etc/init.d/gmetad-python
+%endif
 %endif
 %__cp -f gmetad/gmetad-default $RPM_BUILD_ROOT/etc/sysconfig/gmetad
 
@@ -355,7 +376,11 @@ fi
 %defattr(-,root,root)
 %attr(0755,nobody,nobody)/var/lib/ganglia/
 %{_sbindir}/gmetad
+%if 0%{?_unitdir:1}
+%{_unitdir}/gmetad.service
+%else
 /etc/init.d/gmetad
+%endif
 %config(noreplace) /etc/sysconfig/gmetad
 %{_mandir}/man1/gmetad*1*
 %config(noreplace) %{conf_dir}/gmetad.conf
@@ -376,7 +401,11 @@ fi
 %{_bindir}/gmetric
 %{_bindir}/gstat
 %{_sbindir}/gmond
+%if 0%{?_unitdir:1}
+%{_unitdir}/gmond.service
+%else
 /etc/init.d/gmond
+%endif
 %{_mandir}/man1/gmetric.1*
 %{_mandir}/man1/gmond.1*
 %{_mandir}/man1/gstat.1*
@@ -441,6 +470,8 @@ fi
 %__rm -rf $RPM_BUILD_ROOT
 
 %changelog
+* Thu Feb 27 2014 Olivier Lahaye <olivier.lahaye@cea.fr>
+- Add native systemd support in package.
 * Thu Mar 31 2011 Bernard Li <bernard@vanhpc.org>
 - Allow file permissions for gmetric and gstat to be automatically set
 * Thu Mar 31 2011 Bernard Li <bernard@vanhpc.org>
