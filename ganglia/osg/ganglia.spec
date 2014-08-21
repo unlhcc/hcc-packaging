@@ -1,5 +1,7 @@
 #
 #
+# ganglia.spec.  Generated from ganglia.spec.in by configure.
+#
 # IMPORTANT NOTE:
 # This spec file has conditional constructs using the noarch target.
 # To get all packages build you must include noarch and your real target
