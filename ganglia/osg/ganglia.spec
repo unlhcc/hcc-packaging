@@ -34,7 +34,6 @@ BuildRequires: rrdtool, expat
 %else
 BuildRequires: expat-devel, rrdtool-devel, freetype-devel, apr-devel > 1
 %endif
-BuildRequires: ck-devel
 %define conf_dir /etc/ganglia
 %define gmond_conf %{_builddir}/%{?buildsubdir}/gmond/gmond.conf
 %define generate_gmond_conf %(test -e %gmond_conf && echo 0 || echo 1)
