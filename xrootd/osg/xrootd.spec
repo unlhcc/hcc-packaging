@@ -1,68 +1,65 @@
-#-------------------------------------------------------------------------------
-# Package definitions
-#-------------------------------------------------------------------------------
-Name:      xrootd4
-Epoch:     1
-Version:   4.0.2
-Release:   1%{?dist}
-Summary:   Extended ROOT file server
-Group:     System Environment/Daemons
-License:   LGPLv3+
-URL:       http://xrootd.org/
+#Defining python macros
+%if 0%{?rhel} && 0%{?rhel} <= 6
+%{!?__python2: %global __python2 /usr/bin/python2}
+%{!?python2_sitelib: %global python2_sitelib %(%{__python2} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
+%{!?python2_sitearch: %global python2_sitearch %(%{__python2} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
+%endif
 
-# git clone http://xrootd.org/repo/xrootd.git xrootd
-# cd xrootd
-# git-archive master | gzip -9 > ~/rpmbuild/SOURCES/xrootd.tgz
-Source0:   xrootd-%{version}.tar.gz
 
-BuildRoot: %{_tmppath}/%{name}-root
 
-BuildRequires: cmake
-BuildRequires: krb5-devel
-BuildRequires: readline-devel
-BuildRequires: openssl-devel
-BuildRequires: fuse-devel
-BuildRequires: libxml2-devel
-BuildRequires: krb5-devel
-BuildRequires: zlib-devel
-BuildRequires: ncurses-devel
+%{!?_pkgdocdir: %global _pkgdocdir %{_docdir}/%{name}-%{version}}
 
-# selinux
-BuildRequires: checkpolicy
-
-%if %{?fedora}%{!?fedora:0} >= 20
-BuildRequires: policycoreutils-python
+%if %{?fedora}%{!?fedora:0} >= 19 || %{?rhel}%{!?rhel:0} >= 7
+%global use_systemd 1
 %else
-BuildRequires: policycoreutils
+%global use_systemd 0
 %endif
 
-%if %{?_with_tests:1}%{!?_with_tests:0}
-BuildRequires: cppunit-devel
-%endif
+%global snapshot .20160323
 
+Name:		xrootd
+Epoch:		1
+Version:	4.3.0
+Release:	1%{snapshot}%{?dist}
+Summary:	Extended ROOT file server
+
+Group:		System Environment/Daemons
+License:	LGPLv3+
+URL:		http://xrootd.org/
+Source0:	%{name}-%{version}.tar.gz
+Patch0:         0001-Free-Entity-before-replacing-it-from-the-cache.patch
+BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+
+BuildRequires:	cmake
+BuildRequires:	krb5-devel
+BuildRequires:	libevent-devel
+BuildRequires:	libxml2-devel
+BuildRequires:	ncurses-devel
+BuildRequires:	openssl-devel
+BuildRequires:	readline-devel
+BuildRequires:	zlib-devel
+BuildRequires:	fuse-devel
 BuildRequires:	doxygen
 BuildRequires:	graphviz
 %if "%{?rhel}" == "5"
 BuildRequires:	graphviz-gd
 %endif
+BuildRequires:	selinux-policy-devel
+%if %{use_systemd}
+BuildRequires:	systemd
+%endif
+BuildRequires: python2-devel
 
-%if %{?_with_clang:1}%{!?_with_clang:0}
-BuildRequires: clang
+%if %{?fedora}%{!?fedora:0} >= 14 || %{?rhel}%{!?rhel:0} >= 7
+BuildRequires: python-sphinx
+%endif
+%if %{?rhel}%{!?rhel:0} == 6
+BuildRequires: python-sphinx10
 %endif
 
-Requires:	  %{name}-libs        = %{epoch}:%{version}-%{release}
-Requires:	  %{name}-client-libs = %{epoch}:%{version}-%{release}
-Requires:	  %{name}-server-libs = %{epoch}:%{version}-%{release}
-Obsoletes:  xrootd < 1:4.0.0
-Provides: xrootd = 1:%{version}-%{release}
-Provides: xrootd-server = 1:%{version}-%{release}
-
-Requires(pre):		shadow-utils
-Requires(pre):		chkconfig
-Requires(post):		chkconfig
-Requires(preun):	chkconfig
-Requires(preun):	initscripts
-Requires(postun):	initscripts
+Requires:	%{name}-server%{?_isa} = %{epoch}:%{version}-%{release}
+Requires:	%{name}-selinux = %{epoch}:%{version}-%{release}
+Obsoletes:	%{name} < 1:4.0.0
 
 %description
 The Extended root file server consists of a file server called xrootd
@@ -77,289 +74,365 @@ originally developed to cluster and load balance Objectivity/DB AMS
 database servers. It provides enhanced capability along with lower
 latency and increased throughput.
 
-%define policy_dir /usr/share/selinux/targeted
+%package server
+Summary:	Xrootd server daemons
+Group:		System Environment/Daemons
+Requires:	%{name}-libs%{?_isa} = %{epoch}:%{version}-%{release}
+Requires:	%{name}-client-libs%{?_isa} = %{epoch}:%{version}-%{release}
+Requires:	%{name}-server-libs%{?_isa} = %{epoch}:%{version}-%{release}
+Requires:	expect
+Requires(pre):		shadow-utils
+%if %{use_systemd}
+Requires(pre):		systemd
+Requires(post):		systemd
+Requires(preun):	systemd
+Requires(postun):	systemd
+%else
+Requires(pre):		chkconfig
+Requires(post):		chkconfig
+Requires(preun):	chkconfig
+Requires(preun):	initscripts
+Requires(postun):	initscripts
+%endif
 
-#-------------------------------------------------------------------------------
-# libs
-#-------------------------------------------------------------------------------
+%description server
+This package contains the xrootd servers without the SELinux support.
+Unless you are installing on a system without SELinux also install the
+xrootd-selinux package.
+
+%package selinux
+Summary:	SELinux policy module for the xrootd server
+Group:		System Environment/Daemons
+%if %{?fedora}%{!?fedora:0} >= 10 || %{?rhel}%{!?rhel:0} >= 6
+BuildArch:	noarch
+%endif
+Requires:	selinux-policy
+Requires(post):		policycoreutils
+Requires(postun):	policycoreutils
+
+%description selinux
+This package contains SELinux policy module for the xrootd server package.
+
 %package libs
 Summary:	Libraries used by xrootd servers and clients
 Group:		System Environment/Libraries
-Obsoletes: xrootd-libs
-Provides: xrootd-libs = 1:%{version}-%{release}
+#		Java admin client no longer supported
+Obsoletes:	%{name}-client-admin-java < 1:3.3.0
+#		Perl admin client no longer supported
+Obsoletes:	%{name}-client-admin-perl < 1:4.0.0
 
 %description libs
 This package contains libraries used by the xrootd servers and clients.
 
-#-------------------------------------------------------------------------------
-# devel
-#------------------------------------------------------------------------------
 %package devel
 Summary:	Development files for xrootd
 Group:		Development/Libraries
+Provides:	%{name}-libs-devel = %{epoch}:%{version}-%{release}
+Provides:	%{name}-libs-devel%{?_isa} = %{epoch}:%{version}-%{release}
+Obsoletes:	%{name}-libs-devel < %{epoch}:%{version}-%{release}
 Requires:	%{name}-libs%{?_isa} = %{epoch}:%{version}-%{release}
-Obsoletes: xrootd-devel
-Provides: xrootd-devel = 1:%{version}-%{release}
 
 %description devel
 This package contains header files and development libraries for xrootd
 development.
 
-#-------------------------------------------------------------------------------
-# client-libs
-#-------------------------------------------------------------------------------
 %package client-libs
 Summary:	Libraries used by xrootd clients
 Group:		System Environment/Libraries
 Requires:	%{name}-libs%{?_isa} = %{epoch}:%{version}-%{release}
-Obsoletes: xrootd-client-libs
 
 %description client-libs
 This package contains libraries used by xrootd clients.
 
-#-------------------------------------------------------------------------------
-# client-devel
-#-------------------------------------------------------------------------------
 %package client-devel
 Summary:	Development files for xrootd clients
 Group:		Development/Libraries
+Provides:	%{name}-cl-devel = %{epoch}:%{version}-%{release}
+Provides:	%{name}-cl-devel%{?_isa} = %{epoch}:%{version}-%{release}
+Obsoletes:	%{name}-cl-devel < %{epoch}:%{version}-%{release}
 Requires:	%{name}-devel%{?_isa} = %{epoch}:%{version}-%{release}
 Requires:	%{name}-client-libs%{?_isa} = %{epoch}:%{version}-%{release}
-Obsoletes: xrootd-client-devel
-Provides: xrootd-client-devel = 1:%{version}-%{release}
 
 %description client-devel
 This package contains header files and development libraries for xrootd
 client development.
 
-#-------------------------------------------------------------------------------
-# server-libs
-#-------------------------------------------------------------------------------
 %package server-libs
 Summary:	Libraries used by xrootd servers
 Group:		System Environment/Libraries
 Requires:	%{name}-libs%{?_isa} = %{epoch}:%{version}-%{release}
 Requires:	%{name}-client-libs%{?_isa} = %{epoch}:%{version}-%{release}
-Obsoletes: xrootd-server-libs
 
 %description server-libs
 This package contains libraries used by xrootd servers.
 
-#-------------------------------------------------------------------------------
-# server-devel
-#-------------------------------------------------------------------------------
 %package server-devel
 Summary:	Development files for xrootd servers
 Group:		Development/Libraries
 Requires:	%{name}-devel%{?_isa} = %{epoch}:%{version}-%{release}
 Requires:	%{name}-client-devel%{?_isa} = %{epoch}:%{version}-%{release}
 Requires:	%{name}-server-libs%{?_isa} = %{epoch}:%{version}-%{release}
-Obsoletes: xrootd-server-devel
-Provides: xrootd-server-devel = %{epoch}:%{version}-%{release}
 
 %description server-devel
 This package contains header files and development libraries for xrootd
 server development.
 
-#-------------------------------------------------------------------------------
-# private devel
-#-------------------------------------------------------------------------------
 %package private-devel
 Summary:	Legacy xrootd headers
 Group:		Development/Libraries
 Requires:	%{name}-libs = %{epoch}:%{version}-%{release}
 %if %{?fedora}%{!?fedora:0} >= 10 || %{?rhel}%{!?rhel:0} >= 6
-#BuildArch:	noarch
+BuildArch:	noarch
 %endif
-Obsoletes: xrootd-private-devel
 
 %description private-devel
 This package contains some private xrootd headers. The use of these
 headers is strongly discouraged. Backward compatibility between
 versions is not guaranteed for these headers.
 
-#-------------------------------------------------------------------------------
-# client
-#-------------------------------------------------------------------------------
 %package client
 Summary:	Xrootd command line client tools
 Group:		Applications/Internet
+Provides:	%{name}-cl = %{epoch}:%{version}-%{release}
+Provides:	%{name}-cl%{?_isa} = %{epoch}:%{version}-%{release}
+Obsoletes:	%{name}-cl < %{epoch}:%{version}-%{release}
 Requires:	%{name}-libs%{?_isa} = %{epoch}:%{version}-%{release}
 Requires:	%{name}-client-libs%{?_isa} = %{epoch}:%{version}-%{release}
-Obsoletes: xrootd-client
-Provides: xrootd-client = 1:%{version}-%{release}
 
 %description client
 This package contains the command line tools used to communicate with
 xrootd servers.
 
-#-------------------------------------------------------------------------------
-# fuse
-#-------------------------------------------------------------------------------
 %package fuse
 Summary:	Xrootd FUSE tool
 Group:		Applications/Internet
 Requires:	%{name}-libs%{?_isa} = %{epoch}:%{version}-%{release}
 Requires:	%{name}-client-libs%{?_isa} = %{epoch}:%{version}-%{release}
 Requires:	fuse
-Obsoletes: xrootd-fuse
-Provides: xrootd-fuse = 1:%{version}-%{release}
 
 %description fuse
 This package contains the FUSE (file system in user space) xrootd mount
 tool.
 
-#-------------------------------------------------------------------------------
-# doc
-#-------------------------------------------------------------------------------
+%if %{?fedora}%{!?fedora:0} >= 22
+%package ceph
+Summary: Ceph back-end plug-in for xrootd
+Group:	      Development/Tools
+Requires:     %{name}-server%{?_isa} = %{epoch}:%{version}-%{release}
+
+%description ceph
+This package contains a ceph back-end plug-in for xrootd.
+%endif
+#-------------------------------------------------------------------------------                                                                             
+# python                                                                                                                                                     
+#-------------------------------------------------------------------------------                                                                             
+%package python
+Summary:        Python bindings for XRootD
+Group:          Development/Libraries
+Requires:	%{name}-libs%{?_isa} = %{epoch}:%{version}-%{release}
+Requires:	%{name}-client-libs%{?_isa} = %{epoch}:%{version}-%{release}
+
+%description python
+Python bindings for XRootD
+
 %package doc
 Summary:	Developer documentation for the xrootd libraries
 Group:		Documentation
 %if %{?fedora}%{!?fedora:0} >= 10 || %{?rhel}%{!?rhel:0} >= 6
-#BuildArch:	noarch
+BuildArch:	noarch
 %endif
 
 %description doc
 This package contains the API documentation of the xrootd libraries.
 
-#-------------------------------------------------------------------------------
-# selinux
-#-------------------------------------------------------------------------------
-%package selinux
-Summary:	 SELinux policy extensions for xrootd.
-Group:		 System Environment/Base
-%if %{?fedora}%{!?fedora:0} >= 10 || %{?rhel}%{!?rhel:0} >= 6
-#BuildArch: noarch
-%endif
-Requires:  policycoreutils
-Requires:  selinux-policy-targeted
 
-%description selinux
-SELinux policy extensions for running xrootd while in enforcing mode.
-
-#-------------------------------------------------------------------------------
-# tests
-#-------------------------------------------------------------------------------
-%if %{?_with_tests:1}%{!?_with_tests:0}
-%package tests
-Summary: CPPUnit tests
-Group:   Development/Tools
-Requires: %{name}-client = %{epoch}:%{version}-%{release}
-%description tests
-This package contains a set of CPPUnit tests for xrootd.
-%endif
-
-#-------------------------------------------------------------------------------
-# Build instructions
-#-------------------------------------------------------------------------------
 %prep
-%setup -c -n xrootd
+#%setup -q -n %{name}
+%setup -q -n %{name}-%{version}
+%patch0 -p1
+%if %{?fedora}%{!?fedora:0} <= 9 && %{?rhel}%{!?rhel:0} <= 5
+# Older versions of SELinux do not have policy for open
+sed 's/ open / /' -i packaging/common/%{name}.te
+%endif
 
 %build
-cd xrootd-4.0.2
 mkdir build
-cd build
 
-%if %{?_with_cpp11:1}%{!?_with_cpp11:0}
-export CXXFLAGS=-std=c++11
-%endif
+pushd build
+%cmake ..                                                                                                                                                   
+make %{?_smp_mflags}                                                                                                                                        
+popd 
 
-%if %{?_with_clang:1}%{!?_with_clang:0}
-export CC=clang
-export CXX=clang++
-%endif
+pushd packaging/common
+make -f /usr/share/selinux/devel/Makefile
+popd
 
-%if %{?_with_tests:1}%{!?_with_tests:0}
-cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=RelWithDebInfo -DENABLE_TESTS=TRUE ../
-%else
-cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=RelWithDebInfo ../
-%endif
-
-make -i VERBOSE=1 %{?_smp_mflags}
-
-checkmodule -M -m -o xrootd.mod ../packaging/common/xrootd.te
-semodule_package -o xrootd.pp -m xrootd.mod
-
-cd ..
 doxygen Doxyfile
 
-#-------------------------------------------------------------------------------
-# Installation
-#-------------------------------------------------------------------------------
+%if %{?fedora}%{!?fedora:0} >= 14 || %{?rhel}%{!?rhel:0} >= 6
+export PYTHONPATH=$(cd build/bindings/python/build/lib.* ; pwd)
+export LD_LIBRARY_PATH=${PWD}/build/src/XrdCl:${PWD}/build/src
+pushd bindings/python/docs
+%if %{?rhel}%{!?rhel:0} == 6
+make html SPHINXBUILD=sphinx-1.0-build
+%else
+make html
+%endif
+popd
+%endif
+
+
+
 %install
-cd xrootd-4.0.2
-cd build
-rm -rf $RPM_BUILD_ROOT
-make install DESTDIR=$RPM_BUILD_ROOT
-cd ..
+rm -rf %{buildroot}
 
-# configuration stuff
-rm -rf $RPM_BUILD_ROOT%{_sysconfdir}/xrootd/*
+pushd build
+make install DESTDIR=%{buildroot}
+popd
 
-# var paths
-mkdir -p $RPM_BUILD_ROOT%{_var}/log/xrootd
-mkdir -p $RPM_BUILD_ROOT%{_var}/run/xrootd
-mkdir -p $RPM_BUILD_ROOT%{_var}/spool/xrootd
+# configuration stuff                                                                                                                                        
+rm -rf %{buildroot}%{_sysconfdir}/xrootd/*
 
-# init stuff
-mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig
-mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/xrootd
-mkdir -p $RPM_BUILD_ROOT%{_initrddir}
+# Service start-up scripts / unit files
+%if %{use_systemd}
+mkdir -p %{buildroot}%{_unitdir}
+install -m 644 packaging/common/xrootd@.service %{buildroot}%{_unitdir}
+install -m 644 packaging/common/cmsd@.service %{buildroot}%{_unitdir}
+install -m 644 packaging/common/frm_xfrd@.service %{buildroot}%{_unitdir}
+install -m 644 packaging/common/frm_purged@.service %{buildroot}%{_unitdir}
+%else
+mkdir -p %{buildroot}%{_initrddir}
+mkdir -p %{buildroot}%{_sysconfdir}/sysconfig
+install -p packaging/rhel/xrootd.init %{buildroot}%{_initrddir}/xrootd
+install -p packaging/rhel/cmsd.init %{buildroot}%{_initrddir}/cmsd
+install -p packaging/rhel/frm_purged.init %{buildroot}%{_initrddir}/frm_purged
+install -p packaging/rhel/frm_xfrd.init %{buildroot}%{_initrddir}/frm_xfrd
+sed s/%{name}.functions/%{name}-functions/ -i %{buildroot}%{_initrddir}/*
+install -m 644 -p packaging/rhel/%{name}.functions \
+    %{buildroot}%{_initrddir}/%{name}-functions
+install -m 644 -p packaging/rhel/%{name}.sysconfig \
+    %{buildroot}%{_sysconfdir}/sysconfig/%{name}
+%endif
 
-install -m 644 packaging/rhel/xrootd.sysconfig $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/xrootd
+# Server config
+mkdir -p %{buildroot}%{_sysconfdir}/%{name}
+install -m 644 -p packaging/common/%{name}-clustered.cfg \
+    %{buildroot}%{_sysconfdir}/%{name}/%{name}-clustered.cfg
+install -m 644 -p packaging/common/%{name}-standalone.cfg \
+    %{buildroot}%{_sysconfdir}/%{name}/%{name}-standalone.cfg
 
-install -m 755 packaging/rhel/cmsd.init $RPM_BUILD_ROOT%{_initrddir}/cmsd
-install -m 755 packaging/rhel/frm_purged.init $RPM_BUILD_ROOT%{_initrddir}/frm_purged
-install -m 755 packaging/rhel/frm_xfrd.init $RPM_BUILD_ROOT%{_initrddir}/frm_xfrd
-install -m 755 packaging/rhel/xrootd.init $RPM_BUILD_ROOT%{_initrddir}/xrootd
-install -m 755 packaging/rhel/xrootd.functions $RPM_BUILD_ROOT%{_initrddir}/xrootd.functions
+# Client config
+mkdir -p %{buildroot}%{_sysconfdir}/%{name}/client.plugins.d
+install -m 644 -p packaging/common/client.conf \
+    %{buildroot}%{_sysconfdir}/%{name}/client.conf
+install -m 644 -p packaging/common/client-plugin.conf.example \
+    %{buildroot}%{_sysconfdir}/%{name}/client.plugins.d
 
-# logrotate
-mkdir $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d
-install -p -m 644 packaging/common/xrootd.logrotate $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/xrootd
+chmod 644 %{buildroot}%{_datadir}/%{name}/utils/XrdCmsNotify.pm
 
-install -m 644 packaging/common/xrootd-clustered.cfg $RPM_BUILD_ROOT%{_sysconfdir}/xrootd/xrootd-clustered.cfg
-install -m 644 packaging/common/xrootd-standalone.cfg $RPM_BUILD_ROOT%{_sysconfdir}/xrootd/xrootd-standalone.cfg
+sed 's!/usr/bin/env perl!/usr/bin/perl!' -i \
+    %{buildroot}%{_datadir}/%{name}/utils/netchk \
+    %{buildroot}%{_datadir}/%{name}/utils/XrdCmsNotify.pm \
+    %{buildroot}%{_datadir}/%{name}/utils/XrdOlbMonPerf
 
-# client plug-in config
-mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/xrootd/client.plugins.d
-install -m 644 packaging/common/client-plugin.conf.example $RPM_BUILD_ROOT%{_sysconfdir}/xrootd/client.plugins.d/client-plugin.conf.example
+%if %{?fedora}%{!?fedora:0} >= 22
+rm %{buildroot}%{_libdir}/libXrdCephPosix.so
+%endif
 
-# client config
-install -m 644 packaging/common/client.conf $RPM_BUILD_ROOT%{_sysconfdir}/xrootd/client.conf
+chmod 755 %{buildroot}%{python2_sitearch}/pyxrootd/client.so
 
-# documentation
-mkdir -p %{buildroot}%{_docdir}/%{name}-%{version}
-cp -pr doxydoc/html %{buildroot}%{_docdir}/%{name}-%{version}
 
-# selinux
-mkdir -p ${RPM_BUILD_ROOT}%{policy_dir}
-install -m 644 build/xrootd.pp ${RPM_BUILD_ROOT}%{policy_dir}
+mkdir -p %{buildroot}%{_localstatedir}/log/%{name}
+mkdir -p %{buildroot}%{_localstatedir}/spool/%{name}
+
+mkdir %{buildroot}%{_sysconfdir}/logrotate.d
+install -m 644 -p packaging/common/%{name}.logrotate \
+    %{buildroot}%{_sysconfdir}/logrotate.d/%{name}
+
+mkdir -p %{buildroot}%{_datadir}/selinux/packages/%{name}
+install -m 644 -p packaging/common/%{name}.pp \
+    %{buildroot}%{_datadir}/selinux/packages/%{name}
+
+# Documentation
+mkdir -p %{buildroot}%{_pkgdocdir}
+cp -pr doxydoc/html %{buildroot}%{_pkgdocdir}
+
+%if %{?fedora}%{!?fedora:0} >= 14 || %{?rhel}%{!?rhel:0} >= 6
+cp -pr bindings/python/docs/build/html %{buildroot}%{_pkgdocdir}/python
+%endif
+
 
 %clean
-rm -rf $RPM_BUILD_ROOT
+rm -rf %{buildroot}
 
-#-------------------------------------------------------------------------------
-# RPM scripts
-#-------------------------------------------------------------------------------
-%post   libs -p /sbin/ldconfig
+%post libs -p /sbin/ldconfig
+
 %postun libs -p /sbin/ldconfig
 
-%post   client-libs -p /sbin/ldconfig
+%post client-libs -p /sbin/ldconfig
+
 %postun client-libs -p /sbin/ldconfig
 
-%post   server-libs -p /sbin/ldconfig
+%post server-libs -p /sbin/ldconfig
+
 %postun server-libs -p /sbin/ldconfig
 
-%pre
+%if %{?fedora}%{!?fedora:0} >= 22
+%post ceph -p /sbin/ldconfig
+%postun ceph -p /sbin/ldconfig
+%endif
 
-getent group xrootd >/dev/null || groupadd -r xrootd
-getent passwd xrootd >/dev/null || \
-       useradd -r -g xrootd -c "XRootD runtime user" \
-       -s /sbin/nologin -d %{_localstatedir}/spool/xrootd xrootd
-exit 0
+%pre server
+getent group %{name} >/dev/null || groupadd -r %{name}
+getent passwd %{name} >/dev/null || useradd -r -g %{name} -s /sbin/nologin \
+  -d %{_localstatedir}/spool/%{name} -c "XRootD runtime user" %{name}
 
-%post
+# Remove obsolete service
+/sbin/service olbd stop >/dev/null 2>&1 || :
+/sbin/chkconfig --del olbd >/dev/null 2>&1 || :
+
+%if %{use_systemd}
+# Remove old init config when systemd is used
+/sbin/service xrootd stop >/dev/null 2>&1 || :
+/sbin/service cmsd stop >/dev/null 2>&1 || :
+/sbin/service frm_purged stop >/dev/null 2>&1 || :
+/sbin/service frm_xfrd stop >/dev/null 2>&1 || :
+/sbin/chkconfig --del xrootd 2>&1 || :
+/sbin/chkconfig --del cmsd 2>&1 || :
+/sbin/chkconfig --del frm_purged 2>&1 || :
+/sbin/chkconfig --del frm_xfrd 2>&1 || :
+%endif
+
+%if %{use_systemd}
+
+%post server
+if [ $1 -eq 1 ] ; then
+    systemctl daemon-reload >/dev/null 2>&1 || :
+fi
+
+%preun server
+if [ $1 -eq 0 ] ; then
+    for DAEMON in xrootd cmsd frm_purged frm xfrd; do
+	for INSTANCE in `systemctl | grep $DAEMON@ | awk '{print $1;}'`; do
+	    systemctl --no-reload disable $INSTANCE > /dev/null 2>&1 || :
+	    systemctl stop $INSTANCE > /dev/null 2>&1 || :
+	done
+    done
+fi
+
+%postun server
+if [ $1 -ge 1 ] ; then
+    systemctl daemon-reload >/dev/null 2>&1 || :
+    for DAEMON in xrootd cmsd frm_purged frm xfrd; do
+	for INSTANCE in `systemctl | grep $DAEMON@ | awk '{print $1;}'`; do
+	    systemctl try-restart $INSTANCE >/dev/null 2>&1 || :
+	done
+    done
+fi
+
+%else
+
+%post server
 if [ $1 -eq 1 ]; then
     /sbin/chkconfig --add xrootd
     /sbin/chkconfig --add cmsd
@@ -367,7 +440,7 @@ if [ $1 -eq 1 ]; then
     /sbin/chkconfig --add frm_xfrd
 fi
 
-%preun
+%preun server
 if [ $1 -eq 0 ]; then
     /sbin/service xrootd stop >/dev/null 2>&1 || :
     /sbin/service cmsd stop >/dev/null 2>&1 || :
@@ -379,7 +452,7 @@ if [ $1 -eq 0 ]; then
     /sbin/chkconfig --del frm_xfrd
 fi
 
-%postun
+%postun server
 if [ $1 -ge 1 ]; then
     /sbin/service xrootd condrestart >/dev/null 2>&1 || :
     /sbin/service cmsd condrestart >/dev/null 2>&1 || :
@@ -387,31 +460,20 @@ if [ $1 -ge 1 ]; then
     /sbin/service frm_xfrd condrestart >/dev/null 2>&1 || :
 fi
 
-#-------------------------------------------------------------------------------
-# Add a new user and group if necessary
-#-------------------------------------------------------------------------------
-%pre fuse
-getent group xrootd >/dev/null || groupadd -r xrootd
-getent passwd xrootd >/dev/null || \
-       useradd -r -g xrootd -c "XRootD runtime user" \
-       -s /sbin/nologin -d %{_localstatedir}/spool/xrootd xrootd
-exit 0
+%endif
 
-#-------------------------------------------------------------------------------
-# Selinux
-#-------------------------------------------------------------------------------
 %post selinux
-semodule -i %{policy_dir}/xrootd.pp
-semodule -R
+/usr/sbin/semodule -i %{_datadir}/selinux/packages/%{name}/%{name}.pp >/dev/null 2>&1 || :
 
 %postun selinux
-semodule -R
+if [ $1 -eq 0 ] ; then
+    /usr/sbin/semodule -r %{name} >/dev/null 2>&1 || :
+fi
 
-#-------------------------------------------------------------------------------
-# Files
-#-------------------------------------------------------------------------------
 %files
-%defattr(-,root,root,-)
+# Empty
+
+%files server
 %{_bindir}/cconfig
 %{_bindir}/cmsd
 %{_bindir}/cns_ssi
@@ -422,9 +484,11 @@ semodule -R
 %{_bindir}/mpxstats
 %{_bindir}/wait41
 %{_bindir}/XrdCnsd
+%{_bindir}/xrdmapc
 %{_bindir}/xrdpwdadmin
 %{_bindir}/xrdsssadmin
 %{_bindir}/xrootd
+%{_bindir}/xrdpfc_print
 %{_mandir}/man8/cmsd.8*
 %{_mandir}/man8/cns_ssi.8*
 %{_mandir}/man8/frm_admin.8*
@@ -436,105 +500,99 @@ semodule -R
 %{_mandir}/man8/xrdpwdadmin.8*
 %{_mandir}/man8/xrdsssadmin.8*
 %{_mandir}/man8/xrootd.8*
-%{_datadir}/xrootd
+%{_mandir}/man8/xrdpfc_print.8*
+%{_datadir}/%{name}
+%if %{use_systemd}
+%{_unitdir}/*
+%else
 %{_initrddir}/*
-%attr(-,xrootd,xrootd) %config(noreplace) %{_sysconfdir}/xrootd/xrootd-clustered.cfg
-%attr(-,xrootd,xrootd) %config(noreplace) %{_sysconfdir}/xrootd/xrootd-standalone.cfg
-%attr(-,xrootd,xrootd) %dir %{_var}/log/xrootd
-%attr(-,xrootd,xrootd) %dir %{_var}/run/xrootd
-%attr(-,xrootd,xrootd) %dir %{_var}/spool/xrootd
-%config(noreplace) %{_sysconfdir}/sysconfig/xrootd
-%config(noreplace) %{_sysconfdir}/logrotate.d/xrootd
+%config(noreplace) %{_sysconfdir}/sysconfig/%{name}
+%endif
+%config(noreplace) %{_sysconfdir}/logrotate.d/%{name}
+%attr(-,xrootd,xrootd) %config(noreplace) %{_sysconfdir}/%{name}/*.cfg
+%attr(-,xrootd,xrootd) %{_localstatedir}/log/%{name}
+%attr(-,xrootd,xrootd) %{_localstatedir}/spool/%{name}
+
+%files selinux
+%{_datadir}/selinux/packages/%{name}/%{name}.pp
 
 %files libs
-%defattr(-,root,root,-)
 %{_libdir}/libXrdAppUtils.so.*
-%{_libdir}/libXrdCksCalczcrc32.so.*
 %{_libdir}/libXrdCrypto.so.*
 %{_libdir}/libXrdCryptoLite.so.*
-%{_libdir}/libXrdCryptossl.so.*
-%{_libdir}/libXrdSec*.so.*
 %{_libdir}/libXrdUtils.so.*
-# Some of the libraries are used as plugins - need the .so symlink at runtime
-%{_libdir}/libXrdCksCalczcrc32.so
-%{_libdir}/libXrdCryptossl.so
-%{_libdir}/libXrdSec*.so
+%{_libdir}/libXrdXml.so.*
+# Plugins
+%{_libdir}/libXrdCksCalczcrc32-4.so
+%{_libdir}/libXrdCryptossl-4.so
+%{_libdir}/libXrdSec*-4.so
+%doc COPYING* LICENSE
 
 %files devel
-%defattr(-,root,root,-)
-%dir %{_includedir}/xrootd
-%{_includedir}/xrootd/XProtocol
-%{_includedir}/xrootd/Xrd
-%{_includedir}/xrootd/XrdCks
-%{_includedir}/xrootd/XrdNet
-%{_includedir}/xrootd/XrdOuc
-%{_includedir}/xrootd/XrdSec
-%{_includedir}/xrootd/XrdSys
-%{_includedir}/xrootd/XrdHttp
-%{_includedir}/xrootd/XrdVersion.hh
-%{_includedir}/xrootd/XrdVersionPlugin.hh
-# These libraries are not used as plugins
+%{_bindir}/xrootd-config
+%dir %{_includedir}/%{name}
+%{_includedir}/%{name}/XProtocol
+%{_includedir}/%{name}/Xrd
+%{_includedir}/%{name}/XrdCks
+%{_includedir}/%{name}/XrdNet
+%{_includedir}/%{name}/XrdOuc
+%{_includedir}/%{name}/XrdSec
+%{_includedir}/%{name}/XrdSys
+%{_includedir}/%{name}/XrdXml
+%{_includedir}/%{name}/XrdVersion.hh
 %{_libdir}/libXrdAppUtils.so
 %{_libdir}/libXrdCrypto.so
 %{_libdir}/libXrdCryptoLite.so
 %{_libdir}/libXrdUtils.so
+%{_libdir}/libXrdXml.so
 
 %files client-libs
-%defattr(-,root,root,-)
 %{_libdir}/libXrdCl.so.*
 %{_libdir}/libXrdClient.so.*
 %{_libdir}/libXrdFfs.so.*
 %{_libdir}/libXrdPosix.so.*
 %{_libdir}/libXrdPosixPreload.so.*
-%{_sysconfdir}/xrootd/client.plugins.d/client-plugin.conf.example
-%config(noreplace) %{_sysconfdir}/xrootd/client.conf
-# Some of the libraries are used as plugins - need the .so symlink at runtime
+# This lib may be used for LD_PRELOAD so the .so link needs to be included
 %{_libdir}/libXrdPosixPreload.so
+%dir %{_sysconfdir}/%{name}
+%config(noreplace) %{_sysconfdir}/%{name}/client.conf
+%dir %{_sysconfdir}/%{name}/client.plugins.d
+%config(noreplace) %{_sysconfdir}/%{name}/client.plugins.d/client-plugin.conf.example
 
 %files client-devel
-%defattr(-,root,root,-)
-%{_includedir}/xrootd/XrdCl
-%{_includedir}/xrootd/XrdClient
-%{_includedir}/xrootd/XrdPosix
-# These libraries are not used as plugins
+%{_includedir}/%{name}/XrdCl
+%{_includedir}/%{name}/XrdClient
+%{_includedir}/%{name}/XrdPosix
 %{_libdir}/libXrdCl.so
 %{_libdir}/libXrdClient.so
 %{_libdir}/libXrdFfs.so
 %{_libdir}/libXrdPosix.so
 
 %files server-libs
-%defattr(-,root,root,-)
-%{_libdir}/libXrdBwm.so.*
-%{_libdir}/libXrdPss.so.*
-%{_libdir}/libXrdOfs.so.*
 %{_libdir}/libXrdServer.so.*
-%{_libdir}/libXrdXrootd.so.*
-%{_libdir}/libXrdFileCache.so.*
-%{_libdir}/libXrdHttp.so.*
-# Some of the libraries are used as plugins - need the .so symlink at runtime
-%{_libdir}/libXrdBwm.so
-%{_libdir}/libXrdPss.so
-%{_libdir}/libXrdXrootd.so
-%{_libdir}/libXrdFileCache.so
-%{_libdir}/libXrdHttp.so
+# Plugins
+%{_libdir}/libXrdBlacklistDecision-4.so
+%{_libdir}/libXrdBwm-4.so
+%{_libdir}/libXrdFileCache-4.so
+%{_libdir}/libXrdHttp-4.so
+%{_libdir}/libXrdOssSIgpfsT-4.so
+%{_libdir}/libXrdPss-4.so
+%{_libdir}/libXrdXrootd-4.so
+%{_libdir}/libXrdThrottle-4.so
 
 %files server-devel
-%defattr(-,root,root,-)
-%{_includedir}/xrootd/XrdAcc
-%{_includedir}/xrootd/XrdCms
-%{_includedir}/xrootd/XrdOss
-%{_includedir}/xrootd/XrdSfs
-%{_includedir}/xrootd/XrdXrootd
-# These libraries are not used as plugins
-%{_libdir}/libXrdOfs.so
+%{_includedir}/%{name}/XrdAcc
+%{_includedir}/%{name}/XrdCms
+%{_includedir}/%{name}/XrdOss
+%{_includedir}/%{name}/XrdSfs
+%{_includedir}/%{name}/XrdXrootd
+%{_includedir}/%{name}/XrdHttp
 %{_libdir}/libXrdServer.so
 
 %files private-devel
-%defattr(-,root,root,-)
-%{_includedir}/xrootd/private
+%{_includedir}/%{name}/private
 
 %files client
-%defattr(-,root,root,-)
 %{_bindir}/xprep
 %{_bindir}/xrd
 %{_bindir}/xrdadler32
@@ -555,60 +613,210 @@ semodule -R
 %{_mandir}/man1/xrdstagetool.1*
 
 %files fuse
-%defattr(-,root,root,-)
 %{_bindir}/xrootdfs
 %{_mandir}/man1/xrootdfs.1*
-%dir %{_sysconfdir}/xrootd
 
-%files doc
-%defattr(-,root,root,-)
-%doc %{_docdir}/%{name}-%{version}
-
-%if %{?_with_tests:1}%{!?_with_tests:0}
-%files tests
-%defattr(-,root,root,-)
-%{_bindir}/text-runner
-%{_libdir}/libXrdClTests.so
-%{_libdir}/libXrdClTestsHelper.so
-%{_libdir}/libXrdClTestMonitor.so
+%if %{?fedora}%{!?fedora:0} >= 22
+%files ceph
+%{_libdir}/libXrdCeph-4.so
+%{_libdir}/libXrdCephXattr-4.so
+%{_libdir}/libXrdCephPosix.so.*
 %endif
 
-%files selinux
-%defattr(-,root,root)
-%{policy_dir}/xrootd.pp
 
-#-------------------------------------------------------------------------------
-# Changelog
-#-------------------------------------------------------------------------------
+%files python
+%{python2_sitearch}/*
+
+%files doc
+%doc %{_pkgdocdir}
+
 %changelog
-* Fri Apr 11 2014 Brian Bockelman <bbockelm@cse.unl.edu> - 1:4.0.0-0.pre2
-- Add a few more provide statements.
+* Wed Mar 23 2016 John Thiltges <jthiltges2@unl.edu> - 1:4.3.0-1.20160323
+- Apply GSI memory leak fix 9fd46163
 
-* Tue Apr 01 2014 Lukasz Janyst <ljanyst@cern.ch>
-- correct the license field (LGPLv3+)
-- rename to xrootd4
-- add 'conflicts' statements
-- remove 'provides' and 'obsoletes'
+* Wed Mar 23 2016 Edgar Fajardo <efajardo@physics.ucsd.edu> - 1:4.3.0-1
+- Update to 4.3.0 - SOFTWARE-2249
 
-* Mon Mar 31 2014 Lukasz Janyst <ljanyst@cern.ch>
-- Add selinux policy
+* Fri Sep 11 2015 Edgar Fajardo <efajardo@physics.ucsd.edu> - 1:4.2.3-1
+- Update to 4.2.3
 
-* Fri Jan 24 2014 Lukasz Janyst <ljanyst@cern.ch>
-- Import XrdHttp
+* Tue Jul 28 2015 Carl Edquist <edquist@cs.wisc.edu> - 1:4.2.2-1
+- Update to 4.2.2
 
-* Fri Jun 7 2013 Lukasz Janyst <ljanyst@cern.ch>
-- adopt the EPEL RPM layout by Mattias Ellert
+* Mon Jul 13 2015 Edgar Fajardo <efajardo@physics.ucsd.edu> - 1:4.2.1-5
+- Added patch to avoid cmsd stalling when thread limit is reached
 
-* Tue Apr 2 2013 Lukasz Janyst <ljanyst@cern.ch>
-- remove perl
+* Fri Jul 10 2015 Edgar Fajardo <efajardo@physics.ucsd.edu> - 1:4.2.1-4
+- Added patch to avoid seg faulting on the python bindings when askign file size
 
-* Thu Nov 1 2012 Justin Salmon <jsalmon@cern.ch>
-- add tests package
+* Fri Jul 10 2015 Edgar Fajardo <efajardo@physics.ucsd.edu> - 1:4.2.1-3
+- Added patch for reads in the cache exceeding file size
 
-* Fri Oct 21 2011 Lukasz Janyst <ljanyst@cern.ch> 3.1.0-1
-- bump the version to 3.1.0
+* Mon Jun 22 2015 Edgar Fajardo <efajardo@physics.ucsd.edu> - 1:4.2.1-2
+- Added patch to fix file cache hangs
 
-* Mon Apr 11 2011 Lukasz Janyst <ljanyst@cern.ch> 3.0.3-1
-- the first RPM release - version 3.0.3
-- the detailed release notes are available at:
-  http://xrootd.org/download/ReleaseNotes.html
+* Mon Jun 1 2015 Edgar Fajardo <efajardo@physics.ucsd.edu> - 1:4.2.1-1
+- Updated to 4.2.1
+- Included ceph subpackage
+
+* Wed May 27 2015 Edgar Fajardo <efajardo@physics.ucsd.edu> - 1:4.2.0-2
+- Fixed the dist tag been twice in the release field
+
+* Tue May 26 2015 Edgar Fajardo <efajardo@physics.ucsd.edu> - 1:4.2.0-1
+- Update to 4.2.0
+- Added some macros for the python bindings
+
+* Mon Dec 08 2014 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:4.1.1-1
+- Update to version 4.1.1
+- Drop patch xrootd-signed-char.patch (accepted upstream)
+
+* Fri Nov 28 2014 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:4.1.0-1
+- Update to version 4.1.0
+- Install systemd unit files (F21+, EPEL7+)
+
+* Sat Nov 01 2014 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:4.0.4-1
+- Update to version 4.0.4
+
+* Mon Aug 18 2014 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1:4.0.3-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_21_22_Mass_Rebuild
+
+* Fri Aug 08 2014 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:4.0.3-1
+- Update to version 4.0.3
+
+* Fri Jul 11 2014 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:4.0.1-1
+- Update to version 4.0.1
+- Split main package into server and selinux
+- New main package installs server and selinux
+- Drop patches accepted upstream (-32bit, -range, -narrowing)
+
+* Sun Jun 29 2014 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:4.0.0-1
+- Update to version 4.0.0
+- Remove the perl package - no longer part of upstream sources
+
+* Sun Jun 08 2014 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1:3.3.6-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_21_Mass_Rebuild
+
+* Thu Jan 30 2014 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:3.3.6-1
+- Update to version 3.3.6
+
+* Tue Dec 03 2013 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:3.3.5-1
+- Update to version 3.3.5
+
+* Tue Nov 19 2013 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:3.3.4-1
+- Update to version 3.3.4
+
+* Sun Aug 04 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1:3.3.3-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_20_Mass_Rebuild
+
+* Sat Jul 27 2013 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:3.3.3-1
+- Update to version 3.3.3
+- Change License tag to LGPLv3+ due to upstream license change
+
+* Wed Jul 17 2013 Petr Pisar <ppisar@redhat.com> - 1:3.3.2-2
+- Perl 5.18 rebuild
+
+* Sun Apr 28 2013 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:3.3.2-1
+- Update to version 3.3.2
+
+* Wed Mar 06 2013 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:3.3.1-1
+- Update to version 3.3.1
+- Remove the java package - no longer part of upstream sources
+- Drop patches fixed upstream: xrootd-cryptoload.patch, xrootd-init.patch and
+  xrootd-perl.patch
+- Drop obsolete patch: xrootd-java.patch
+- Add private-devel package for deprecated header files
+
+* Fri Feb 15 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1:3.2.7-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_19_Mass_Rebuild
+
+* Thu Jan 17 2013 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:3.2.7-1
+- Update to version 3.2.7
+- Split libs package into libs, client-libs and server-libs
+- Split devel package into devel, client-devel and server-devel
+
+* Fri Oct 12 2012 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:3.2.5-1
+- Update to version 3.2.5
+
+* Sun Jul 22 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1:3.2.2-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_18_Mass_Rebuild
+
+* Wed Jul 11 2012 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:3.2.2-1
+- Update to version 3.2.2
+
+* Mon Jun 11 2012 Petr Pisar <ppisar@redhat.com> - 1:3.2.1-2
+- Perl 5.16 rebuild
+
+* Thu May 17 2012 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:3.2.1-1
+- Update to version 3.2.1
+
+* Sat Mar 17 2012 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:3.1.1-1
+- Update to version 3.1.1
+
+* Tue Feb 28 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1:3.0.5-3
+- Rebuilt for c++ ABI breakage
+
+* Sat Jan 14 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1:3.0.5-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_17_Mass_Rebuild
+
+* Sat Nov 05 2011 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:3.0.5-1
+- Update to version 3.0.5
+
+* Mon Jul 18 2011 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:3.0.4-2.1
+- Rebuild for new gridsite (EPEL 5 only)
+
+* Tue Jun 28 2011 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:3.0.4-2
+- Add missing BuildRequires ncurses-devel
+
+* Tue Jun 28 2011 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:3.0.4-1.1
+- Remove xrootdfs man page on EPEL 4
+
+* Mon Jun 27 2011 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:3.0.4-1
+- Update to version 3.0.4
+- Drop patches fixed upstream: xrootd-man.patch, xrootd-rhel5-no-atomic.patch
+- Drop the remaining man-pages copied from root - now provided by upstream
+
+* Fri Jun 17 2011 Marcela Mašláňová <mmaslano@redhat.com> - 1:3.0.3-3
+- Perl mass rebuild
+
+* Mon May 02 2011 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:3.0.3-2
+- Proper fix for the atomic detection on ppc - no bug in gcc after all
+
+* Sun Apr 24 2011 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:3.0.3-1.1
+- Workaround for broken gcc on RHEL5 ppc (rhbz #699149)
+
+* Fri Apr 22 2011 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:3.0.3-1
+- Update to version 3.0.3
+- Use upstream's manpages where available (new in this release)
+- Use upstream's start-up scripts (new in this release)
+
+* Tue Feb 08 2011 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1:3.0.2-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_15_Mass_Rebuild
+
+* Sun Jan 30 2011 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:3.0.2-1
+- Update to version 3.0.2
+- Patch XrdCms makefile to make the Xmi interface public
+
+* Fri Dec 17 2010 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:3.0.0-2
+- Rebuilt for updated gridsite package
+
+* Mon Dec 13 2010 Mattias Ellert <mattias.ellert@fysast.uu.se> - 1:3.0.0-1
+- Update to version 3.0.0
+- New subpackage - xrootd-fuse
+- New version scheme inroduced by upstream - add epoch
+
+* Wed Sep 01 2010 Mattias Ellert <mattias.ellert@fysast.uu.se> - 20100315-5
+- Disable threads in doxygen - causes memory corruption on ppc
+
+* Wed Sep 01 2010 Mattias Ellert <mattias.ellert@fysast.uu.se> - 20100315-4
+- Add startup scripts for cmsd service that replaces the deprecated
+  olbd service
+
+* Fri Jul 09 2010 Mattias Ellert <mattias.ellert@fysast.uu.se> - 20100315-3
+- Fix broken jar
+
+* Mon Jun 14 2010 Mattias Ellert <mattias.ellert@fysast.uu.se> - 20100315-2
+- Add LGPLv2+ to License tag due to man pages
+- Better package description
+
+* Wed Jun 09 2010 Mattias Ellert <mattias.ellert@fysast.uu.se> - 20100315-1
+- Initial packaging

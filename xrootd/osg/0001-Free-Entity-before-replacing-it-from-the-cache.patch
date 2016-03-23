@@ -1,0 +1,34 @@
+From 9fd461637f1037c833ba4ee653dda8f1b47b947e Mon Sep 17 00:00:00 2001
+From: John Thiltges <jthiltges2@unl.edu>
+Date: Mon, 21 Mar 2016 12:43:25 -0500
+Subject: [PATCH] Free Entity before replacing it from the cache
+
+Toward the beginning of XrdSecProtocolgsi::Authenticate(), memory may be
+allocated for the Entity with strdup():
+https://github.com/xrootd/xrootd/blob/a76eccc1f2/src/XrdSecgsi/XrdSecProtocolgsi.cc#L1873
+
+Later in the same function, the Entity may be replaced with an entry from the
+cache:
+https://github.com/xrootd/xrootd/blob/a76eccc1f2/src/XrdSecgsi/XrdSecProtocolgsi.cc#L1951
+
+However, the memory allocated with strdup() is not free()d. Call FreeEntity()
+before replacing Entity with a copy.
+---
+ src/XrdSecgsi/XrdSecProtocolgsi.cc | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/XrdSecgsi/XrdSecProtocolgsi.cc b/src/XrdSecgsi/XrdSecProtocolgsi.cc
+index d7d725e..5f9e3d9 100644
+--- a/src/XrdSecgsi/XrdSecProtocolgsi.cc
++++ b/src/XrdSecgsi/XrdSecProtocolgsi.cc
+@@ -1948,6 +1948,7 @@ int XrdSecProtocolgsi::Authenticate(XrdSecCredentials *cred,
+          } else {
+             // Fetch a copy of the saved entity
+             int slen = 0;
++            FreeEntity(&Entity);
+             CopyEntity((XrdSecEntity *) cent->buf1.buf, &Entity, &slen);
+             // Notify
+             DEBUG("Got Entity from cacheAuthzFun ("<<slen<<" bytes)");
+-- 
+2.5.0
+
