@@ -255,6 +255,7 @@ BuildRequires: openldap-devel
 BuildRequires: python-devel
 BuildRequires: boost-devel
 BuildRequires: redhat-rpm-config
+BuildRequires: perl-Data-Dumper
 
 %if %uw_build || %std_univ
 BuildRequires: cmake >= 2.8
