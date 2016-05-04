@@ -1,0 +1,13 @@
+--- src/verify-proxy/verify-lib/src_internal/_verify_x509.c	(revision 18648)
++++ src/verify-proxy/verify-lib/src_internal/_verify_x509.c	(working copy)
+@@ -636,7 +636,9 @@
+ 
+     X509_STORE_CTX_set_purpose( verify_ctx, X509_PURPOSE_SSL_CLIENT );
+ #if OPENSSL_VERSION_NUMBER >= 0x00908000L
+-    cert->ex_flags |= EXFLAG_PROXY;
++    if (verify_type_of_proxy(cert) != EEC) {
++        cert->ex_flags |= EXFLAG_PROXY;
++    }
+ #endif
+ 
+     /* Alter verification depth to fit the certificate chain, sub-CAs and root
