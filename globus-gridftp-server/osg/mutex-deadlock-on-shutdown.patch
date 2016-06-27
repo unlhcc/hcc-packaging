@@ -1,0 +1,35 @@
+From db3a9e9b172eb3fb216137a2891bd2a07c8f409c Mon Sep 17 00:00:00 2001
+From: Brian Bockelman <bbockelm@cse.unl.edu>
+Date: Mon, 27 Jun 2016 10:29:37 -0500
+Subject: [PATCH] Prevent deadlock caused by attempting to lock a destroyed
+ mutex
+
+---
+ globus_i_gfs_log.c | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/globus_i_gfs_log.c b/globus_i_gfs_log.c
+index 9e24433..4bd3bbd 100644
+--- a/globus_i_gfs_log.c
++++ b/globus_i_gfs_log.c
+@@ -562,7 +562,16 @@ globus_i_gfs_log_close(void)
+     if(globus_l_gfs_log_handle != NULL)
+     {
+         globus_logging_flush(globus_l_gfs_log_handle);
+-        globus_logging_destroy(globus_l_gfs_log_handle);
++        /* globus_logging_destroy(globus_l_gfs_log_handle); */
++        /* NOTE: We do not destroy this handle.  At log-close time,
++         * there may be several other threads that try to subsequently
++         * log:
++         * - Watchdog callback for data / control channels (race condition)
++         * - DSI code during shutdown or threads.
++         * If they try to grab the destroyed mutex, they may deadlock.
++         * Since access to the pointer is not threadsafe, we cannot simply
++         * set it to NULL.
++         */
+     }
+     if(globus_l_gfs_log_file != stderr && globus_l_gfs_log_file != NULL)
+     {
+-- 
+2.5.5
+
