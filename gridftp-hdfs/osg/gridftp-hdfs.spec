@@ -2,7 +2,7 @@
 
 Name:           gridftp-hdfs
 Version:        0.5.4
-Release:        25.1%{?dist}
+Release:        25.4.1%{?dist}
 Summary:        HDFS DSI plugin for GridFTP
 Group:          System Environment/Daemons
 License:        ASL 2.0
@@ -10,6 +10,7 @@ URL:            http://twiki.grid.iu.edu/bin/view/Storage/HadoopInstallation
 Source0:        %{name}-%{version}.tar.gz
 Source1: globus-gridftp-server-plugin.osg-sysconfig
 Source2: %{name}.conf
+Source3: %{name}.osg-extensions.conf
 %if 0%{?osg} > 0
 Patch0: osg-sysconfig.patch
 %endif
@@ -36,6 +37,8 @@ Patch16: 2011-capture_stderr.patch
 Patch17: 2115-load-limits.patch
 Patch18: 2107-rmdir-rename.patch
 Patch19: list_empty_directory.patch
+#Patch20: 2436-ordered-data.patch
+Patch21: hdfs_connection_details.patch
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -48,6 +51,7 @@ BuildRequires: jpackage-utils
 
 BuildRequires: hadoop-libhdfs
 BuildRequires: globus-gridftp-server-devel
+BuildRequires: globus-ftp-control-devel
 BuildRequires: globus-common-devel
 
 BuildRequires: chrpath
@@ -57,9 +61,11 @@ Requires: hadoop-client >= 2.0.0+545
 # ^ was getting "No FileSystem for scheme: hdfs" without this
 # 6.14-2 added OSG plugin-style sysconfig instead of gridftp.conf.d
 # 6.38-1.3 added /etc/gridftp.d
-Requires: globus-gridftp-server-progs >= 6.38-1.3
+Requires: globus-gridftp-server-progs
+Requires: globus-ftp-control
 %if 0%{?osg} > 0
 Requires: xinetd
+Requires: globus-gridftp-osg-extensions
 %endif
 Requires: java >= 1:1.7.0
 Requires: jpackage-utils
@@ -103,6 +109,8 @@ HDFS DSI plugin for GridFTP
 %patch17 -p1
 %patch18 -p1
 %patch19 -p1
+#%patch20 -p1
+%patch21 -p1
 
 aclocal
 libtoolize
@@ -140,6 +148,7 @@ rm $RPM_BUILD_ROOT%{_sysconfdir}/gridftp-hdfs/gridftp.conf
 mkdir -p $RPM_BUILD_ROOT/usr/share/osg/sysconfig
 install -m 644 -p %{SOURCE1} $RPM_BUILD_ROOT/usr/share/osg/sysconfig/globus-gridftp-server-plugin
 install -m 644 %{SOURCE2} $RPM_BUILD_ROOT%{_sysconfdir}/gridftp.d
+install -m 644 %{SOURCE3} $RPM_BUILD_ROOT%{_sysconfdir}/gridftp.d
 %else
 rm $RPM_BUILD_ROOT%{_sysconfdir}/gridftp-hdfs/gridftp-debug.conf
 rm $RPM_BUILD_ROOT%{_sysconfdir}/gridftp-hdfs/gridftp-inetd.conf
@@ -194,12 +203,27 @@ fi
 %config(noreplace) %{_sysconfdir}/%{name}/replica-map.conf
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}
 %config(noreplace) %{_sysconfdir}/gridftp.d/%{name}.conf
+%config(noreplace) %{_sysconfdir}/gridftp.d/%{name}.osg-extensions.conf
 /usr/share/osg/sysconfig/globus-gridftp-server-plugin
 %else
 %config(noreplace) %{_sysconfdir}/sysconfig/gridftp.conf.d/%{name}
 %endif
 
 %changelog
+* Tue Aug 30 2016 Brian Bockelman <bbockelm@cse.unl.edu> - 0.5.4-25.4.1
+- Expose the current file and username as a dynamic symbol for xio_callout
+  plugin.
+
+* Fri Aug 26 2016 Mátyás Selmeci <matyas@cs.wisc.edu> - 0.5.4-25.4
+- Add ordered data patch (SOFTWARE-2436)
+    require globus-ftp-control >= 7.2 and globus-gridftp-server >= 11.0
+
+* Thu Jul 21 2016 Carl Edquist <edquist@cs.wisc.edu> - 0.5.4-25.3
+- Config file fixes for globus-gridftp-osg-extensions (SOFTWARE-2397)
+
+* Wed Jul 20 2016 Carl Edquist <edquist@cs.wisc.edu> - 0.5.4-25.2
+- Use globus-gridftp-osg-extensions (SOFTWARE-2397)
+
 * Thu Jun 30 2016 Brian Bockelman <bbockelm@cse.unl.edu> - 0.5.4-25.1
 - Fix bug with listing empty directories.
 
