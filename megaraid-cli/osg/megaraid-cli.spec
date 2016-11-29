@@ -1,6 +1,6 @@
 Summary: MegaCli from LSI repackaged for use at Nebraska
 Name: megaraid-cli
-Version: 8.07.10
+Version: 8.07.14
 Release: 1%{dist}
 License: Public Domain
 Group: Administration Tools
@@ -17,9 +17,17 @@ This package contains the LSI MegaCli utility
 
 %install
 mkdir -p %{buildroot}%{_bindir}
-install --mode=0755 opt/MegaRAID/MegaCli/MegaCli %{buildroot}%{_bindir}
 install --mode=0755 opt/MegaRAID/MegaCli/MegaCli64 %{buildroot}%{_bindir}
-install --mode=0444 opt/MegaRAID/MegaCli/libstorelibir-2.so.14.07-0 %{buildroot}%{_bindir}
+mkdir -p %{buildroot}%{_libdir}
+install --mode=0755 opt/MegaRAID/MegaCli/libstorelibir-2.so.14.07-0 %{buildroot}%{_libdir}
+
+%ifarch x86_64
+pushd %{buildroot}%{_bindir}
+ln -s MegaCli64 MegaCli
+popd
+%else
+install --mode=0755 opt/MegaRAID/MegaCli/MegaCli %{buildroot}%{_bindir}
+%endif
 
 %clean
 rm -rf %{buildroot}
@@ -28,9 +36,13 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %{_bindir}/MegaCli
 %{_bindir}/MegaCli64
-%{_bindir}/libstorelibir-2.so.14.07-0
+%{_libdir}/libstorelibir-2.so.14.07-0
 
 %changelog
+* Tue Nov 29 2016 John Thiltges <jthiltges@unl.edu> - 8.07.14-1
+- Update version
+- Do not include MegaCli (32-bit) version in 64-bit package
+
 * Mon Sep 16 2013 Garhan Attebury <garhan.attebury@unl.edu> - 8.07.10-1
 - New version, repackaging of MegaCli-8.07.10-1.noarch.rpm
 
