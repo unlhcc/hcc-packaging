@@ -4,7 +4,7 @@
 Name:      xrootd-voms-plugin
 Epoch:     1
 Version:   0.4.0
-Release:   2.20170303.1%{?dist}
+Release:   2.20170303.2%{?dist}
 Summary:   VOMS attribute extractor plug-in for XRootD
 Group:     System Environment/Libraries
 License:   BSD
@@ -94,6 +94,9 @@ rm -rf $RPM_BUILD_ROOT
 # Changelog
 #-------------------------------------------------------------------------------
 %changelog
+* Fri Mar 03 2017 John Thiltges <jthiltges2@unl.edu> - 1:0.4.0-2.20170303.2
+- Include patch to free X509 structures
+
 * Mon Jun 20 2016 Edgar Fajardo <emfajard@ucsd.edu> -1:0.4.0-1
 - Updated to v0.4.0 SOFTWARE-2363
 

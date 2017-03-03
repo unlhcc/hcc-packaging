@@ -1,14 +1,14 @@
-From bfb1c1d120568d2a53b98b49c8707d6d29777e73 Mon Sep 17 00:00:00 2001
+From a3608f1f660f943492135535de82df229b5c0ed4 Mon Sep 17 00:00:00 2001
 From: John Thiltges <jthiltges2@unl.edu>
 Date: Thu, 2 Mar 2017 17:53:50 -0600
 Subject: [PATCH] Free X509 structures
 
 ---
- src/XrdSecgsiVOMSFun.cc | 8 +++++---
- 1 file changed, 5 insertions(+), 3 deletions(-)
+ src/XrdSecgsiVOMSFun.cc | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
 
 diff --git a/src/XrdSecgsiVOMSFun.cc b/src/XrdSecgsiVOMSFun.cc
-index 862bec7..64df420 100644
+index 862bec7..6dc92bc 100644
 --- a/src/XrdSecgsiVOMSFun.cc
 +++ b/src/XrdSecgsiVOMSFun.cc
 @@ -203,12 +203,14 @@ int XrdSecgsiVOMSFun(XrdSecEntity &ent)
@@ -26,24 +26,14 @@ index 862bec7..64df420 100644
           return -1;
        }
        VOMSDBGSUBJ("proxy: ", pxy)
-@@ -221,8 +223,9 @@ int XrdSecgsiVOMSFun(XrdSecEntity &ent)
-          sk_X509_push(stk, xc);
-       }
-       //
--      // Free BIO
-+      // Free BIO and proxy cert
-       BIO_free(bmem);
-+      X509_free(pxy);
- 
-    } else {
-       //
-@@ -305,8 +308,7 @@ int XrdSecgsiVOMSFun(XrdSecEntity &ent)
+@@ -305,8 +307,8 @@ int XrdSecgsiVOMSFun(XrdSecEntity &ent)
  
     // Free memory taken by the chain, if required
     if (stk && freestk) {
 -      while (sk_X509_pop(stk)) { }
 -      sk_X509_free(stk);
 +      sk_X509_pop_free(stk, X509_free);
++      X509_free(pxy);
     }
     
     // Success or failure?
