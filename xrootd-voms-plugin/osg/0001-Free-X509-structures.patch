@@ -1,0 +1,52 @@
+From bfb1c1d120568d2a53b98b49c8707d6d29777e73 Mon Sep 17 00:00:00 2001
+From: John Thiltges <jthiltges2@unl.edu>
+Date: Thu, 2 Mar 2017 17:53:50 -0600
+Subject: [PATCH] Free X509 structures
+
+---
+ src/XrdSecgsiVOMSFun.cc | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/src/XrdSecgsiVOMSFun.cc b/src/XrdSecgsiVOMSFun.cc
+index 862bec7..64df420 100644
+--- a/src/XrdSecgsiVOMSFun.cc
++++ b/src/XrdSecgsiVOMSFun.cc
+@@ -203,12 +203,14 @@ int XrdSecgsiVOMSFun(XrdSecEntity &ent)
+       int nw = BIO_write(bmem, (const void *)(ent.creds), ent.credslen);
+       if (nw != ent.credslen) {
+          PRINT("problems writing data to memory BIO (nw: "<<nw<<")");
++         BIO_free(bmem);
+          return -1; 
+       }
+ 
+       // Get certificate from BIO
+       if (!(pxy = PEM_read_bio_X509(bmem,0,0,0))) {
+          PRINT("unable to read certificate to memory BIO");
++         BIO_free(bmem);
+          return -1;
+       }
+       VOMSDBGSUBJ("proxy: ", pxy)
+@@ -221,8 +223,9 @@ int XrdSecgsiVOMSFun(XrdSecEntity &ent)
+          sk_X509_push(stk, xc);
+       }
+       //
+-      // Free BIO
++      // Free BIO and proxy cert
+       BIO_free(bmem);
++      X509_free(pxy);
+ 
+    } else {
+       //
+@@ -305,8 +308,7 @@ int XrdSecgsiVOMSFun(XrdSecEntity &ent)
+ 
+    // Free memory taken by the chain, if required
+    if (stk && freestk) {
+-      while (sk_X509_pop(stk)) { }
+-      sk_X509_free(stk);
++      sk_X509_pop_free(stk, X509_free);
+    }
+    
+    // Success or failure?
+-- 
+2.7.4
+
