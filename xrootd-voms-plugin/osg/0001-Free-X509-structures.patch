@@ -1,0 +1,42 @@
+From a3608f1f660f943492135535de82df229b5c0ed4 Mon Sep 17 00:00:00 2001
+From: John Thiltges <jthiltges2@unl.edu>
+Date: Thu, 2 Mar 2017 17:53:50 -0600
+Subject: [PATCH] Free X509 structures
+
+---
+ src/XrdSecgsiVOMSFun.cc | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/src/XrdSecgsiVOMSFun.cc b/src/XrdSecgsiVOMSFun.cc
+index 862bec7..6dc92bc 100644
+--- a/src/XrdSecgsiVOMSFun.cc
++++ b/src/XrdSecgsiVOMSFun.cc
+@@ -203,12 +203,14 @@ int XrdSecgsiVOMSFun(XrdSecEntity &ent)
+       int nw = BIO_write(bmem, (const void *)(ent.creds), ent.credslen);
+       if (nw != ent.credslen) {
+          PRINT("problems writing data to memory BIO (nw: "<<nw<<")");
++         BIO_free(bmem);
+          return -1; 
+       }
+ 
+       // Get certificate from BIO
+       if (!(pxy = PEM_read_bio_X509(bmem,0,0,0))) {
+          PRINT("unable to read certificate to memory BIO");
++         BIO_free(bmem);
+          return -1;
+       }
+       VOMSDBGSUBJ("proxy: ", pxy)
+@@ -305,8 +307,8 @@ int XrdSecgsiVOMSFun(XrdSecEntity &ent)
+ 
+    // Free memory taken by the chain, if required
+    if (stk && freestk) {
+-      while (sk_X509_pop(stk)) { }
+-      sk_X509_free(stk);
++      sk_X509_pop_free(stk, X509_free);
++      X509_free(pxy);
+    }
+    
+    // Success or failure?
+-- 
+2.7.4
+
