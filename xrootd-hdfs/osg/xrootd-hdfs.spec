@@ -1,6 +1,6 @@
 Name: xrootd-hdfs
 Version: 1.9.1
-Release: 1%{?dist}
+Release: 2%{?dist}
 Summary: HDFS plugin for xrootd
 
 Group: System Environment/Development
@@ -19,6 +19,9 @@ BuildRequires: jpackage-utils
 Requires: hadoop-client >= 2.0.0+545-1.cdh4.1.1
 Conflicts: xrootd < 4.6.0-1
 
+Patch0: list-empty-dir-autostat.patch
+Patch1: reset-errno.patch
+
 %package devel
 Summary: Development headers for Xrootd HDFS plugin
 Group: System Environment/Development
@@ -31,6 +34,8 @@ Group: System Environment/Development
 
 %prep
 %setup -q
+%patch0 -p1
+%patch1 -p1
 
 %build
 %cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo .
@@ -70,6 +75,10 @@ rm -rf $RPM_BUILD_ROOT
 %{_includedir}/XrdHdfs.hh
 
 %changelog
+* Mon Mar 27 2017 Brian Bockelman <bbockelm@cse.unl.edu> - 1.9.1-2
+- Remove spurious warning when listing empty directories.
+- Set errno to 0 before calling hdfsListDirectory.
+
 * Sat Mar 25 2017 Brian Bockelman <bbockelm@cse.unl.edu> - 1.9.1-1
 - Fix for listing empty directories.
 
