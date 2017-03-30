@@ -1,6 +1,6 @@
 
 Name: xrootd-lcmaps
-Version: 1.3.1
+Version: 1.3.2
 Release: 1%{?dist}
 Summary: LCMAPS plugin for xrootd
 
@@ -11,8 +11,8 @@ URL: https://github.com/bbockelm/xrootd-lcmaps
 # git archive v%{version} --prefix=xrootd-lcmaps-%{version}/ | gzip -7 > ~/rpmbuild/SOURCES/xrootd-lcmaps-%{version}.tar.gz
 Source0: %{name}-%{version}.tar.gz
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
-BuildRequires: xrootd-server-libs >= 1:4.6.1
-BuildRequires: xrootd-server-devel >= 1:4.6.1
+BuildRequires: xrootd-server-libs >= 1:4.1.0
+BuildRequires: xrootd-server-devel >= 1:4.1.0
 BuildRequires: lcmaps-interface
 BuildRequires: lcmaps
 BuildRequires: cmake
@@ -55,6 +55,9 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) %{_sysconfdir}/xrootd/lcmaps.cfg
 
 %changelog
+* Thu Mar 30 2017 Brian Bockelman <bbockelm@cse.unl.edu> - 1.3.2-1
+- Only perform verification in Globus, not raw OpenSSL.
+
 * Mon Feb 20 2017 Brian Bockelman <bbockelm@cse.unl.edu> - 1.3.1-1
 - Fix population of the role security entity
 - Fix various memory leaks.
