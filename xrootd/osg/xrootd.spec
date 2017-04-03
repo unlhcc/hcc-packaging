@@ -353,7 +353,9 @@ This package contains compatibility binaries for xrootd 3 servers.
 %setup -T -D -n %{name} -a 1
 %endif
 
+pushd xrootd
 %patch0 -p1
+popd
 
 %build
 cd xrootd
