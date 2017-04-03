@@ -52,6 +52,8 @@ Source0:   xrootd.tar.gz
 Source1:   xrootd-3.3.6.tar.gz
 %endif
 
+Patch0: fix_secentity_leaks.patch
+
 BuildRoot: %{_tmppath}/%{name}-root
 
 BuildRequires: cmake
@@ -350,6 +352,8 @@ This package contains compatibility binaries for xrootd 3 servers.
 %if %{?_with_compat:1}%{!?_with_compat:0}
 %setup -T -D -n %{name} -a 1
 %endif
+
+%patch0 -p1
 
 %build
 cd xrootd
