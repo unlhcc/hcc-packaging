@@ -1,7 +1,7 @@
 
 Name: xrootd-lcmaps
 Version: 1.3.2
-Release: 1%{?dist}
+Release: 2%{?dist}
 Summary: LCMAPS plugin for xrootd
 
 Group: System Environment/Daemons
@@ -10,6 +10,7 @@ URL: https://github.com/bbockelm/xrootd-lcmaps
 # Generated from:
 # git archive v%{version} --prefix=xrootd-lcmaps-%{version}/ | gzip -7 > ~/rpmbuild/SOURCES/xrootd-lcmaps-%{version}.tar.gz
 Source0: %{name}-%{version}.tar.gz
+Patch0: Lock-CertStore-mutex-when-reloading.patch
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 BuildRequires: xrootd-server-libs >= 1:4.1.0
 BuildRequires: xrootd-server-devel >= 1:4.1.0
@@ -32,6 +33,7 @@ Requires: xrootd-server >= 1:4.6.1
 
 %prep
 %setup -q
+%patch0 -p1
 
 %build
 #cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=RelWithDebInfo .
@@ -55,6 +57,9 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) %{_sysconfdir}/xrootd/lcmaps.cfg
 
 %changelog
+* Thu Apr 06 2017 Derek Weitzel <dweitzel@cse.unl.edu> - 1.3.2-2
+- Add Lock CertStore patch
+
 * Thu Mar 30 2017 Brian Bockelman <bbockelm@cse.unl.edu> - 1.3.2-1
 - Only perform verification in Globus, not raw OpenSSL.
 
