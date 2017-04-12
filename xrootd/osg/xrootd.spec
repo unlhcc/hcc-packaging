@@ -37,7 +37,7 @@
 Name:      xrootd
 Epoch:     1
 Version:   4.6.1
-Release:   0.2.pre3%{?dist}%{?_with_cpp11:.cpp11}%{?_with_clang:.clang}
+Release:   0.2.pre4%{?dist}%{?_with_cpp11:.cpp11}%{?_with_clang:.clang}
 Summary:   Extended ROOT file server
 Group:     System Environment/Daemons
 License:   LGPLv3+
@@ -53,6 +53,8 @@ Source1:   xrootd-3.3.6.tar.gz
 %endif
 
 Patch0: fix_secentity_leaks.patch
+Patch1: 0001-Free-bpxy-in-XrdSecProtocolgsi-Authenticate-when-usi.patch
+Patch2: 0002-Free-X509-context-stack-and-store-in-XrdCryptosslX50.patch
 
 BuildRoot: %{_tmppath}/%{name}-root
 
@@ -355,6 +357,8 @@ This package contains compatibility binaries for xrootd 3 servers.
 
 pushd xrootd
 %patch0 -p1
+%patch1 -p1
+%patch2 -p1
 popd
 
 %build
@@ -833,6 +837,9 @@ fi
 # Changelog
 #-------------------------------------------------------------------------------
 %changelog
+* Wed Apr 12 2017 John Thiltges <jthiltges2@unl.edu>
+- Include leak fixes for XrdCryptosslX509VerifyChain and XrdSecProtocolgsi::Authenticate
+
 * Tue Dec 13 2016 Gerardo Ganis <gerardo.ganis@cern.ch>
 - Add xrdgsitest to xrootd-client-devel
 
