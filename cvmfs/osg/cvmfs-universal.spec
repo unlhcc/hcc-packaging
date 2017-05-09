@@ -41,6 +41,8 @@ Group: Applications/System
 License: BSD
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
+Patch0: cvmfs-prerelease-version.patch
+
 %if 0%{?el5}
 BuildRequires: buildsys-macros
 %endif
@@ -181,6 +183,8 @@ CernVM-FS unit tests binary.  This RPM is not required except for testing.
 
 %prep
 %setup -q
+
+%patch0 -p1
 
 %if 0%{?selinux_cvmfs}
 mkdir SELinux
