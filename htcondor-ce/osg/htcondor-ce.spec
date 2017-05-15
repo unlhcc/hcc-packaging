@@ -3,7 +3,7 @@
 
 Name: htcondor-ce
 Version: 2.1.5
-Release: 1.%{gitdate}git%{gitversion}%{?dist}
+Release: 1.%{gitdate}git%{gitrev}%{?dist}
 Summary: A framework to run HTCondor as a CE
 BuildArch: noarch
 
