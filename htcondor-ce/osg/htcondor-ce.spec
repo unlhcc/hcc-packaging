@@ -1,5 +1,5 @@
-%global gitdate 20170515
-%global gitrev 62f4ca3d
+%global gitdate 20170516
+%global gitrev a661eccc
 
 Name: htcondor-ce
 Version: 2.1.5
