@@ -1,16 +1,18 @@
 
 Name: xrootd-lcmaps
-Version: 1.3.2
-Release: 2%{?dist}
+Version: 1.3.3
+Release: 3.20170727.1%{?dist}
 Summary: LCMAPS plugin for xrootd
 
 Group: System Environment/Daemons
 License: BSD
-URL: https://github.com/bbockelm/xrootd-lcmaps
+URL: https://github.com/opensciencegrid/xrootd-lcmaps
 # Generated from:
 # git archive v%{version} --prefix=xrootd-lcmaps-%{version}/ | gzip -7 > ~/rpmbuild/SOURCES/xrootd-lcmaps-%{version}.tar.gz
 Source0: %{name}-%{version}.tar.gz
-Patch0: Lock-CertStore-mutex-when-reloading.patch
+Patch0: 0001-Call-globus_activate-even-if-HTTP-support-is-not-ena.patch
+Patch1: 0002-Globus-cert-verification-does-not-clear-proxy_depth-.patch
+Patch2: 0003-Small-leak-in-globus_get_cert_and_chain.patch
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 BuildRequires: xrootd-server-libs >= 1:4.1.0
 BuildRequires: xrootd-server-devel >= 1:4.1.0
@@ -32,8 +34,17 @@ Requires: xrootd-server >= 1:4.6.1
 %{summary}
 
 %prep
+
+%if 0%{?el6}
+echo "*** This version does not build on EL 6 ***"
+exit 1
+%endif
+
 %setup -q
+
 %patch0 -p1
+%patch1 -p1
+%patch2 -p1
 
 %build
 #cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=RelWithDebInfo .
@@ -57,8 +68,23 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) %{_sysconfdir}/xrootd/lcmaps.cfg
 
 %changelog
-* Thu Apr 06 2017 Derek Weitzel <dweitzel@cse.unl.edu> - 1.3.2-2
-- Add Lock CertStore patch
+* Thu Jul 27 2017 John Thiltges <jthiltges@unl.edu> - 1.3.3-3.20170727
+- Don't require HTTP to be enabled in xrootd config
+- Fix proxy depth error
+- Fix small leak in cert chain handling
+
+* Wed May 31 2017 Carl Edquist <edquist@cs.wisc.edu> - 1.3.3-3
+- Don't build 1.3.3 for EL6 (SOFTWARE-2738)
+
+* Wed May 31 2017 Carl Edquist <edquist@cs.wisc.edu> - 1.3.3-2
+- Update patch to apply against 1.3.3 sources (SOFTWARE-2738)
+
+* Fri May 26 2017 Marian Zvada <marian.zvada@cern.ch> - 1.3.3-1
+- new release tagged; added Lock CertStore patch
+
+* Thu May 25 2017 Marian Zvada <marian.zvada@cern.ch> - 1.3.2-2
+- Fix bugleaks and memory warnings for 4.6.1
+- STAS-18
 
 * Thu Mar 30 2017 Brian Bockelman <bbockelm@cse.unl.edu> - 1.3.2-1
 - Only perform verification in Globus, not raw OpenSSL.
