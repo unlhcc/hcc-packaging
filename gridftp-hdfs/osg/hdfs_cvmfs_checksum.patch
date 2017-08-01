@@ -62,7 +62,7 @@ index 1307bff..b31433a 100644
      char                                adler32_human[2*sizeof(uint32_t)+1];
      uint32_t                            crc32;
 diff --git a/src/gridftp_hdfs_cksm.c b/src/gridftp_hdfs_cksm.c
-index 6e9cb47..684a897 100644
+index 6e9cb47..7f040af 100644
 --- a/src/gridftp_hdfs_cksm.c
 +++ b/src/gridftp_hdfs_cksm.c
 @@ -7,6 +7,16 @@
@@ -250,7 +250,7 @@ index 6e9cb47..684a897 100644
      }
  
      // Returns # of bytes, -1 on err
-@@ -242,6 +329,8 @@ globus_result_t hdfs_save_checksum(hdfs_handle_t *hdfs_handle) {
+@@ -242,10 +329,57 @@ globus_result_t hdfs_save_checksum(hdfs_handle_t *hdfs_handle) {
          globus_gfs_log_message(GLOBUS_GFS_LOG_INFO, "Saved checksums to %s.\n", filename);
      }
  
@@ -259,7 +259,81 @@ index 6e9cb47..684a897 100644
      // Note we purposely leak the filesystem handle, as Hadoop has disconnect issues.
      return rc;
  }
-@@ -366,5 +455,7 @@ hdfs_parse_checksum_types(hdfs_handle_t * hdfs_handle, const char * types) {
+ 
++static globus_result_t
++hdfs_calculate_checksum(hdfs_handle_t *hdfs_handle, hdfsFS fs, const char *type)
++{
++    globus_result_t rc = GLOBUS_SUCCESS;
++
++    GlobusGFSName(hdfs_calculate_checksum);
++
++    hdfs_initialize_checksums(hdfs_handle);
++
++    hdfsFile fd = hdfsOpenFile(fs, hdfs_handle->pathname, O_RDONLY, 0, 1, 0);
++    if (fd == NULL) {
++        SystemError(hdfs_handle, "Failed to open file for checksumming", rc)
++        return rc;
++    }
++
++    const size_t cksum_buffer_size = 1024*1024;
++    void *buffer = malloc(cksum_buffer_size);
++    if (buffer == NULL) {
++        MemoryError(hdfs_handle, "Unable to allocate checksum temp buffer", rc);
++        hdfsCloseFile(fs, fd);
++        return rc;
++    }
++    ssize_t retval = 0;
++    globus_off_t offset = 0;
++    do {
++        hdfs_update_checksums(hdfs_handle, buffer, retval);
++        errno = 0;  // older versions of libhdfs sometimes fails to reset errno.
++        retval = hdfsRead(fs, fd, buffer, cksum_buffer_size);
++        if ((retval == -1) && (errno == EINTR)) {continue;}
++        offset += retval;
++    } while (retval > 0);
++    if (retval == -1) {
++        SystemError(hdfs_handle, "Failed to read from file for checksumming", rc);
++        // Fall-through
++    }
++    hdfsCloseFile(fs, fd);
++
++    if (rc == GLOBUS_SUCCESS) {
++        hdfs_handle->offset = offset;
++        hdfs_finalize_checksums(hdfs_handle);
++        rc = hdfs_save_checksum(hdfs_handle);
++    }
++    return rc;
++}
++
+ /*
+  *  Retrieve checksums.
+  */
+@@ -257,7 +391,7 @@ globus_result_t hdfs_get_checksum(hdfs_handle_t *hdfs_handle, const char * pathn
+ 
+     hdfsFS fs = hdfsConnectAsUser("default", 0, "root");
+     if (fs == NULL) {
+-        SystemError(hdfs_handle, "Failure in connecting to HDFS for checksum upload", rc);
++        SystemError(hdfs_handle, "Failure in connecting to HDFS for checksumming.", rc);
+         return rc;
+     }
+ 
+@@ -278,8 +412,13 @@ globus_result_t hdfs_get_checksum(hdfs_handle_t *hdfs_handle, const char * pathn
+ 
+     hdfsFile fh = hdfsOpenFile(fs, filename, O_RDONLY, 0, 0, 0);
+     if (fh == NULL) {
+-        SystemError(hdfs_handle, "Failed to open checksum file", rc);
+-        return rc;
++        rc = hdfs_calculate_checksum(hdfs_handle, fs, requested_cksm);
++        if (rc != GLOBUS_SUCCESS) {return rc;}
++        fh = hdfsOpenFile(fs, filename, O_RDONLY, 0, 0, 0);
++        if (fh == NULL) {
++            SystemError(hdfs_handle, "Failed to open checksum file", rc);
++            return rc;
++        }
+     }
+ 
+     char buffer[OUTPUT_BUFFER_SIZE], cksm[OUTPUT_BUFFER_SIZE], *val;
+@@ -366,5 +505,7 @@ hdfs_parse_checksum_types(hdfs_handle_t * hdfs_handle, const char * types) {
      if (strstr(types, "ADLER32")) {
          hdfs_handle->cksm_types |= HDFS_CKSM_TYPE_ADLER32;
      }
