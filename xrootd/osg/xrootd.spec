@@ -36,8 +36,8 @@
 #-------------------------------------------------------------------------------
 Name:      xrootd
 Epoch:     1
-Version:   4.6.1
-Release:   0.2.pre4%{?dist}%{?_with_cpp11:.cpp11}%{?_with_clang:.clang}
+Version:   4.6.2
+Release:   0.experimental.23.2bf7a9db%{?dist}%{?_with_cpp11:.cpp11}%{?_with_clang:.clang}
 Summary:   Extended ROOT file server
 Group:     System Environment/Daemons
 License:   LGPLv3+
@@ -51,10 +51,6 @@ Source0:   xrootd.tar.gz
 %if %{?_with_compat:1}%{!?_with_compat:0}
 Source1:   xrootd-3.3.6.tar.gz
 %endif
-
-Patch0: fix_secentity_leaks.patch
-Patch1: 0001-Free-bpxy-in-XrdSecProtocolgsi-Authenticate-when-usi.patch
-Patch2: 0002-Free-X509-context-stack-and-store-in-XrdCryptosslX50.patch
 
 BuildRoot: %{_tmppath}/%{name}-root
 
@@ -99,6 +95,7 @@ Requires:	%{name}-selinux = %{epoch}:%{version}-%{release}
 
 %if %{use_systemd}
 BuildRequires:    systemd
+BuildRequires:    systemd-devel
 Requires(pre):		systemd
 Requires(post):		systemd
 Requires(preun):	systemd
@@ -355,12 +352,6 @@ This package contains compatibility binaries for xrootd 3 servers.
 %setup -T -D -n %{name} -a 1
 %endif
 
-pushd xrootd
-%patch0 -p1
-%patch1 -p1
-%patch2 -p1
-popd
-
 %build
 cd xrootd
 
@@ -375,11 +366,18 @@ export CXX=clang++
 
 mkdir build
 pushd build
+cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=RelWithDebInfo \
 %if %{?_with_tests:1}%{!?_with_tests:0}
-cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=RelWithDebInfo -DENABLE_TESTS=TRUE -DUSE_LIBC_SEMAPHORE=%{use_libc_semaphore} ../
+      -DENABLE_TESTS=TRUE \
 %else
-cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=RelWithDebInfo -DUSE_LIBC_SEMAPHORE=%{use_libc_semaphore} ../
+      -DENABLE_TESTS=FALSE \
 %endif
+%if %{?_with_ceph:1}%{!?_with_ceph:0}
+      -DENABLE_CEPH=TRUE \
+%else
+      -DENABLE_CEPH=FALSE \
+%endif
+      -DUSE_LIBC_SEMAPHORE=%{use_libc_semaphore} ../
 
 make -i VERBOSE=1 %{?_smp_mflags}
 popd
@@ -457,9 +455,15 @@ mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/xrootd
 
 mkdir -p $RPM_BUILD_ROOT%{_unitdir}
 install -m 644 packaging/common/xrootd@.service $RPM_BUILD_ROOT%{_unitdir}
+install -m 644 packaging/common/xrdhttp@.socket   $RPM_BUILD_ROOT%{_unitdir}
+install -m 644 packaging/common/xrootd@.socket    $RPM_BUILD_ROOT%{_unitdir}
 install -m 644 packaging/common/cmsd@.service $RPM_BUILD_ROOT%{_unitdir}
 install -m 644 packaging/common/frm_xfrd@.service $RPM_BUILD_ROOT%{_unitdir}
 install -m 644 packaging/common/frm_purged@.service $RPM_BUILD_ROOT%{_unitdir}
+
+# tmpfiles.d
+mkdir -p $RPM_BUILD_ROOT%{_tmpfilesdir}
+install -m 0644 packaging/rhel/xrootd.tmpfiles $RPM_BUILD_ROOT%{_tmpfilesdir}/%{name}.conf
 
 %else
 
@@ -483,6 +487,9 @@ install -m 644 packaging/common/xrootd-clustered.cfg $RPM_BUILD_ROOT%{_sysconfdi
 install -m 644 packaging/common/xrootd-standalone.cfg $RPM_BUILD_ROOT%{_sysconfdir}/xrootd/xrootd-standalone.cfg
 install -m 644 packaging/common/xrootd-filecache-clustered.cfg $RPM_BUILD_ROOT%{_sysconfdir}/xrootd/xrootd-filecache-clustered.cfg
 install -m 644 packaging/common/xrootd-filecache-standalone.cfg $RPM_BUILD_ROOT%{_sysconfdir}/xrootd/xrootd-filecache-standalone.cfg
+%if %{use_systemd}
+install -m 644 packaging/common/xrootd-http.cfg $RPM_BUILD_ROOT%{_sysconfdir}/xrootd/xrootd-http.cfg
+%endif
 
 # client plug-in config
 mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/xrootd/client.plugins.d
@@ -644,6 +651,9 @@ fi
 %attr(-,xrootd,xrootd) %config(noreplace) %{_sysconfdir}/xrootd/xrootd-standalone.cfg
 %attr(-,xrootd,xrootd) %config(noreplace) %{_sysconfdir}/xrootd/xrootd-filecache-clustered.cfg
 %attr(-,xrootd,xrootd) %config(noreplace) %{_sysconfdir}/xrootd/xrootd-filecache-standalone.cfg
+%if %{use_systemd}
+%attr(-,xrootd,xrootd) %config(noreplace) %{_sysconfdir}/xrootd/xrootd-http.cfg
+%endif
 %attr(-,xrootd,xrootd) %dir %{_var}/log/xrootd
 %attr(-,xrootd,xrootd) %dir %{_var}/run/xrootd
 %attr(-,xrootd,xrootd) %dir %{_var}/spool/xrootd
@@ -651,6 +661,7 @@ fi
 
 %if %{use_systemd}
 %{_unitdir}/*
+%{_tmpfilesdir}/%{name}.conf
 %else
 %config(noreplace) %{_sysconfdir}/sysconfig/xrootd
 %{_initrddir}/*
@@ -659,6 +670,7 @@ fi
 %files libs
 %defattr(-,root,root,-)
 %{_libdir}/libXrdAppUtils.so.1*
+%{_libdir}/libXrdClProxyPlugin-4.so
 %{_libdir}/libXrdCks*-4.so
 %{_libdir}/libXrdCrypto.so.1*
 %{_libdir}/libXrdCryptoLite.so.1*
@@ -718,6 +730,7 @@ fi
 %{_libdir}/libXrdFileCache-4.so
 %{_libdir}/libXrdBlacklistDecision-4.so
 %{_libdir}/libXrdHttp-4.so
+%{_libdir}/libXrdN2No2p-4.so
 %{_libdir}/libXrdOssSIgpfsT-4.so
 %{_libdir}/libXrdServer.so.*
 %{_libdir}/libXrdThrottle-4.so
@@ -726,6 +739,7 @@ fi
 %defattr(-,root,root,-)
 %{_includedir}/xrootd/XrdAcc
 %{_includedir}/xrootd/XrdCms
+%{_includedir}/xrootd/XrdFileCache
 %{_includedir}/xrootd/XrdOss
 %{_includedir}/xrootd/XrdSfs
 %{_includedir}/xrootd/XrdXrootd
@@ -810,7 +824,6 @@ fi
 %{_libdir}/libXrdPosix.so.1*
 %{_libdir}/libXrdSecgsiAuthzVO.so*
 %{_libdir}/libXrdSecgsiGMAPDN.so*
-%{_libdir}/libXrdSecgsiGMAPLDAP.so*
 %{_libdir}/libXrdSecgsi.so*
 %{_libdir}/libXrdSeckrb5.so*
 %{_libdir}/libXrdSecpwd.so*
@@ -837,8 +850,9 @@ fi
 # Changelog
 #-------------------------------------------------------------------------------
 %changelog
-* Wed Apr 12 2017 John Thiltges <jthiltges2@unl.edu>
-- Include leak fixes for XrdCryptosslX509VerifyChain and XrdSecProtocolgsi::Authenticate
+* Tue Aug 1 2017 Marian Zvada <marian.zvada@cern.ch>
+- adds fixes for disk sync and reference count
+- adds CGI-like capability to XrdHttp
 
 * Tue Dec 13 2016 Gerardo Ganis <gerardo.ganis@cern.ch>
 - Add xrdgsitest to xrootd-client-devel
