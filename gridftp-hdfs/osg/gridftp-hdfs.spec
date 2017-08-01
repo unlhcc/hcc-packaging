@@ -2,7 +2,7 @@
 
 Name:           gridftp-hdfs
 Version:        0.5.4
-Release:        26.5.1%{?dist}
+Release:        27%{?dist}
 Summary:        HDFS DSI plugin for GridFTP
 Group:          System Environment/Daemons
 License:        ASL 2.0
@@ -39,6 +39,7 @@ Patch18: 2107-rmdir-rename.patch
 Patch19: list_empty_directory.patch
 Patch20: 2436-enable-ordered-data.patch
 Patch21: hdfs_connection_details.patch
+Patch22: hdfs_cvmfs_checksum.patch
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -113,6 +114,7 @@ HDFS DSI plugin for GridFTP
 %patch19 -p1
 %patch20 -p1
 %patch21 -p1
+%patch22 -p1
 
 aclocal
 libtoolize
@@ -212,6 +214,9 @@ fi
 %endif
 
 %changelog
+* Tue Aug 01 2017 Brian Bockelman <bbockelm@cse.unl.edu> - 0.5.4-27
+- Add support for CVMFS checksum type.
+
 * Tue Jan 10 2017 Brian Bockelman <bbockelm@cse.unl.edu> - 0.5.4-26.5.1
 - Rebase from upstream.
 
@@ -238,7 +243,7 @@ fi
 * Mon Feb 22 2016 Carl Edquist <edquist@cs.wisc.edu> - 0.5.4-25.osg
 - Rebuild against hadoop-2.0.0+1612 (SOFTWARE-2161)
 
-* Tue Dec 21 2015  Edgar Fajardo <emfajard@ucsd.edu> - 0.5.4-24.osg
+* Tue Dec 22 2015  Edgar Fajardo <emfajard@ucsd.edu> - 0.5.4-24.osg
 - Update to include the patch (SOFTWARE-2107) to deal with mkdir and rename
 
 * Tue Dec 8 2015 Edgar Fajardo <emfajard@ucsd.edu> - 0.5.4-23.osg
