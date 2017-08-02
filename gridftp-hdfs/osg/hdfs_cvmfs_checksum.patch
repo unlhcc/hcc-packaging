@@ -62,7 +62,7 @@ index 1307bff..b31433a 100644
      char                                adler32_human[2*sizeof(uint32_t)+1];
      uint32_t                            crc32;
 diff --git a/src/gridftp_hdfs_cksm.c b/src/gridftp_hdfs_cksm.c
-index 6e9cb47..7f040af 100644
+index 6e9cb47..0d8e4bb 100644
 --- a/src/gridftp_hdfs_cksm.c
 +++ b/src/gridftp_hdfs_cksm.c
 @@ -7,6 +7,16 @@
@@ -117,7 +117,7 @@ index 6e9cb47..7f040af 100644
 +    if (hdfs_handle->chunk_count == 1) {
 +        hdfs_handle->chunk_offsets[hdfs_handle->chunk_count-1] = 0;
 +    } else {
-+        hdfs_handle->chunk_offsets[hdfs_handle->chunk_count-1] = hdfs_handle->chunk_offsets[hdfs_handle->chunk_count-2] + hdfs_handle->cur_chunk_bytes;
++        hdfs_handle->chunk_offsets[hdfs_handle->chunk_count-1] = hdfs_handle->chunk_offsets[hdfs_handle->chunk_count-2] + CVMFS_CHUNK_SIZE;
 +    }
 +    unsigned char sha1_value[EVP_MAX_MD_SIZE];
 +    int sha1_len;
