@@ -165,6 +165,7 @@ Requires: httpd
 Requires: libcap
 Requires: lsof
 Requires: rsync
+Requires: usbutils
 %if 0%{?el6} || 0%{?el7} || 0%{?fedora} || 0%{?suse_version} >= 1300
 Requires: jq
 %endif
@@ -416,7 +417,7 @@ fi
 %config %{_sysconfdir}/cvmfs/default.conf
 %dir %{_sysconfdir}/bash_completion.d
 %config(noreplace) %{_sysconfdir}/bash_completion.d/cvmfs
-%doc COPYING AUTHORS README ChangeLog
+%doc COPYING AUTHORS README.md ChangeLog
 
 %files devel
 %defattr(-,root,root)
@@ -424,7 +425,7 @@ fi
 %{_libdir}/libcvmfs_cache.a
 %{_includedir}/libcvmfs.h
 %{_includedir}/libcvmfs_cache.h
-%doc COPYING AUTHORS README ChangeLog
+%doc COPYING AUTHORS README.md ChangeLog
 
 %files server
 %defattr(-,root,root)
@@ -448,12 +449,13 @@ fi
 /usr/share/cvmfs-server/
 /var/lib/cvmfs-server/
 /var/spool/cvmfs/README
-%doc COPYING AUTHORS README ChangeLog
+%doc COPYING AUTHORS README.md ChangeLog
 
 %files unittests
 %defattr(-,root,root)
 %{_bindir}/cvmfs_unittests
-%doc COPYING AUTHORS README ChangeLog
+%{_bindir}/cvmfs_test_cache
+%doc COPYING AUTHORS README.md ChangeLog
 
 %changelog
 * Tue May 09 2017 Dave Dykstra <dwd@fnal.gov> - 2.4.0
