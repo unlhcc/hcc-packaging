@@ -1,5 +1,5 @@
 Name: cvmfs-cache-hdfs
-Version: 1.0
+Version: 1.1
 Release: 1%{?dist}
 Summary: HDFS plugin for the CVMFS cache
 
@@ -14,8 +14,6 @@ BuildRequires: xrootd-server-devel >= 1:4.6
 BuildRequires: cmake
 BuildRequires: hadoop-libhdfs
 BuildRequires: openssl-devel
-BuildRequires: java7-devel
-BuildRequires: jpackage-utils
 
 # 2.3.99 was a HCC-specific version with the external cache plugin API.
 BuildRequires: cvmfs-devel >= 2.3.99
@@ -48,6 +46,9 @@ rm -rf $RPM_BUILD_ROOT
 %config %{_sysconfdir}/cvmfs/domain.d/osgstorage.org.conf
 
 %changelog
+* Fri Aug 04 2017 Brian Bockelman <bbockelm@cse.unl.edu> - 1.1-1
+- Have plugin drop privileges on startup.
+
 * Thu Aug 03 2017 Brian Bockelman <bbockelm@cse.unl.edu> - 1.0-1
 - Initial version of packaging.
 
