@@ -14,6 +14,8 @@ BuildRequires: xrootd-server-devel >= 1:4.6
 BuildRequires: cmake
 BuildRequires: hadoop-libhdfs
 BuildRequires: openssl-devel
+BuildRequires: java7-devel
+BuildRequires: jpackage-utils
 
 # 2.3.99 was a HCC-specific version with the external cache plugin API.
 BuildRequires: cvmfs-devel >= 2.3.99
