@@ -1,0 +1,94 @@
+From 7218b4fce58d655ccfc6353354061ab0db07371a Mon Sep 17 00:00:00 2001
+From: John Thiltges <jthiltges2@unl.edu>
+Date: Tue, 8 Aug 2017 10:04:18 -0500
+Subject: [PATCH] Use single shared mutex for LCMAPS calls from XrdLcmaps and
+ XrdHttpLcmaps
+
+---
+ src/XrdHttpLcmaps.cc   | 2 +-
+ src/XrdLcmaps.cc       | 6 +-----
+ src/XrdLcmapsConfig.cc | 5 +++++
+ src/XrdLcmapsConfig.hh | 3 +++
+ 4 files changed, 10 insertions(+), 6 deletions(-)
+
+diff --git a/src/XrdHttpLcmaps.cc b/src/XrdHttpLcmaps.cc
+index 9fcb0ba..70faf4b 100644
+--- a/src/XrdHttpLcmaps.cc
++++ b/src/XrdHttpLcmaps.cc
+@@ -260,7 +260,7 @@ public:
+         }
+ 
+         // Grab the global mutex - lcmaps is not thread-safe.
+-        std::lock_guard<std::mutex> guard(m_mutex);
++        std::lock_guard<std::mutex> guard(lcmaps_mutex);
+ 
+         char  *poolindex = NULL;
+         uid_t  uid = -1;
+diff --git a/src/XrdLcmaps.cc b/src/XrdLcmaps.cc
+index f99fad8..d1153f3 100644
+--- a/src/XrdLcmaps.cc
++++ b/src/XrdLcmaps.cc
+@@ -27,8 +27,6 @@
+ #include <pwd.h>
+ #include <dlfcn.h>
+ 
+-#include "XrdSys/XrdSysPthread.hh"
+-
+ #include <XrdOuc/XrdOucString.hh>
+ #include <XrdSec/XrdSecEntity.hh>
+ 
+@@ -42,8 +40,6 @@ extern "C"
+ {
+ #include "lcmaps_basic.h"
+ 
+-XrdSysMutex mutex;
+-
+ int XrdSecgsiAuthzInit(const char *cfg);
+ int XrdSecgsiAuthzFun(XrdSecEntity &entity);
+ }
+@@ -66,7 +62,7 @@ int XrdSecgsiAuthzFun(XrdSecEntity &entity)
+    static const char inf_pfx[] = "INFO in AuthzFun: ";
+ 
+    // Grab the global mutex.
+-   XrdSysMutexHelper lock(&mutex);
++   std::lock_guard<std::mutex> guard(lcmaps_mutex);
+ 
+    /* -1 is the mapcounter */
+    // Need char, not const char.  Don't know if LCMAPS changes it.
+diff --git a/src/XrdLcmapsConfig.cc b/src/XrdLcmapsConfig.cc
+index 932456b..65b2bf6 100644
+--- a/src/XrdLcmapsConfig.cc
++++ b/src/XrdLcmapsConfig.cc
+@@ -4,6 +4,7 @@
+ #include <getopt.h>
+ 
+ #include <iostream>
++#include <mutex>
+ 
+ extern "C" {
+ #include <lcmaps.h>
+@@ -132,3 +133,7 @@ int XrdSecgsiAuthzConfig(const char *cfg)
+ 
+    return 0;
+ }
++
++// lcmaps is not thread safe
++// Access is shared between XrdLcmaps and XrdHttpLcmaps
++std::mutex lcmaps_mutex;
+diff --git a/src/XrdLcmapsConfig.hh b/src/XrdLcmapsConfig.hh
+index ad665e3..0bf8317 100644
+--- a/src/XrdLcmapsConfig.hh
++++ b/src/XrdLcmapsConfig.hh
+@@ -1,6 +1,9 @@
+ #ifndef __XRD_LCMAPS_CONFIG_HH
+ #define __XRD_LCMAPS_CONFIG_HH
+ 
++#include <mutex>
++
+ int XrdSecgsiAuthzConfig(const char *cfg);
++extern std::mutex lcmaps_mutex;
+ 
+ #endif
+-- 
+2.7.5
+

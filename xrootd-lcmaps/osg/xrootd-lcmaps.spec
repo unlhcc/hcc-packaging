@@ -1,7 +1,7 @@
 
 Name: xrootd-lcmaps
-Version: 1.3.3
-Release: 3.20170727.1%{?dist}
+Version: 1.3.4
+Release: 1.20170808.1%{?dist}
 Summary: LCMAPS plugin for xrootd
 
 Group: System Environment/Daemons
@@ -10,9 +10,8 @@ URL: https://github.com/opensciencegrid/xrootd-lcmaps
 # Generated from:
 # git archive v%{version} --prefix=xrootd-lcmaps-%{version}/ | gzip -7 > ~/rpmbuild/SOURCES/xrootd-lcmaps-%{version}.tar.gz
 Source0: %{name}-%{version}.tar.gz
-Patch0: 0001-Call-globus_activate-even-if-HTTP-support-is-not-ena.patch
-Patch1: 0002-Globus-cert-verification-does-not-clear-proxy_depth-.patch
-Patch2: 0003-Small-leak-in-globus_get_cert_and_chain.patch
+Patch0: sw2848-enable-voms-attributes-verification.patch
+Patch1: 0001-Use-single-shared-mutex-for-LCMAPS-calls-from-XrdLcm.patch
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 BuildRequires: xrootd-server-libs >= 1:4.1.0
 BuildRequires: xrootd-server-devel >= 1:4.1.0
@@ -35,18 +34,17 @@ Requires: xrootd-server >= 1:4.6.1
 
 %prep
 
+%setup -q
+%patch0 -p1
+%patch1 -p1
+
+%build
+
 %if 0%{?el6}
 echo "*** This version does not build on EL 6 ***"
 exit 1
 %endif
 
-%setup -q
-
-%patch0 -p1
-%patch1 -p1
-%patch2 -p1
-
-%build
 #cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=RelWithDebInfo .
 %cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo .
 make VERBOSE=1 %{?_smp_mflags}
@@ -68,10 +66,14 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) %{_sysconfdir}/xrootd/lcmaps.cfg
 
 %changelog
-* Thu Jul 27 2017 John Thiltges <jthiltges@unl.edu> - 1.3.3-3.20170727
-- Don't require HTTP to be enabled in xrootd config
-- Fix proxy depth error
-- Fix small leak in cert chain handling
+* Tue Aug 08 2017 John Thiltges <jthiltges2@unl.edu> - 1.3.4-1.20170808
+- Use single mutex for all LCMAPS calls
+
+* Mon Aug 07 2017 Marian Zvada <marian.zvada@cern.ch> - 1.3.4-1
+- includes cleanup of various OpesnSSL-related bugs from 1.3.4 github tag
+
+* Mon Jul 31 2017 Mátyás Selmeci <matyas@cs.wisc.edu> - 1.3.3-4
+- Always enable VOMS attributes verification (SOFTWARE-2848)
 
 * Wed May 31 2017 Carl Edquist <edquist@cs.wisc.edu> - 1.3.3-3
 - Don't build 1.3.3 for EL6 (SOFTWARE-2738)
