@@ -2,7 +2,7 @@
 
 Name:           gridftp-hdfs
 Version:        0.5.4
-Release:        27.3%{?dist}
+Release:        27.4%{?dist}
 Summary:        HDFS DSI plugin for GridFTP
 Group:          System Environment/Daemons
 License:        ASL 2.0
@@ -214,6 +214,9 @@ fi
 %endif
 
 %changelog
+* Tue Aug 15 2017 Brian Bockelman <bbockelm@cse.unl.edu> - 0.5.4-27.4
+- Fix resizing of checksum output buffers.
+
 * Tue Aug 01 2017 Brian Bockelman <bbockelm@cse.unl.edu> - 0.5.4-27.3
 - Add support for CVMFS checksum type.
 - Add support for recalculating missing checksums.
