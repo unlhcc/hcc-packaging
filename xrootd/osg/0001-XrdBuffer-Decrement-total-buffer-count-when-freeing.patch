@@ -7,13 +7,13 @@ If the total buffer count is incorrectly high, the request profile will also
 be disproportionally high: it's scaled by the buffer count. The buffer pool is
 not reshaped and too much memory is held.
 ---
- src/Xrd/XrdBuffer.cc | 1 +
+ xrootd/src/Xrd/XrdBuffer.cc | 1 +
  1 file changed, 1 insertion(+)
 
-diff --git a/src/Xrd/XrdBuffer.cc b/src/Xrd/XrdBuffer.cc
+diff --git a/xrootd/src/Xrd/XrdBuffer.cc b/xrootd/src/Xrd/XrdBuffer.cc
 index 314adcc..aed0881 100644
---- a/src/Xrd/XrdBuffer.cc
-+++ b/src/Xrd/XrdBuffer.cc
+--- a/xrootd/src/Xrd/XrdBuffer.cc
++++ b/xrootd/src/Xrd/XrdBuffer.cc
 @@ -290,6 +290,7 @@ while(1)
                      delete bp;
                      bucket[i].numbuf--; numfreed++;
