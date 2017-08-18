@@ -37,7 +37,7 @@
 Name:      xrootd
 Epoch:     1
 Version:   4.6.2
-Release:   0.experimental.23.2bf7a9db%{?dist}%{?_with_cpp11:.cpp11}%{?_with_clang:.clang}
+Release:   0.experimental.23.2bf7a9db.1%{?dist}%{?_with_cpp11:.cpp11}%{?_with_clang:.clang}
 Summary:   Extended ROOT file server
 Group:     System Environment/Daemons
 License:   LGPLv3+
@@ -47,6 +47,7 @@ URL:       http://xrootd.org/
 # cd xrootd
 # git-archive master | gzip -9 > ~/rpmbuild/SOURCES/xrootd.tgz
 Source0:   xrootd.tar.gz
+Patch0:    0001-XrdBuffer-Decrement-total-buffer-count-when-freeing.patch
 
 %if %{?_with_compat:1}%{!?_with_compat:0}
 Source1:   xrootd-3.3.6.tar.gz
@@ -347,6 +348,7 @@ This package contains compatibility binaries for xrootd 3 servers.
 #-------------------------------------------------------------------------------
 %prep
 %setup -c -n xrootd
+%patch0 -p1
 
 %if %{?_with_compat:1}%{!?_with_compat:0}
 %setup -T -D -n %{name} -a 1
@@ -850,6 +852,9 @@ fi
 # Changelog
 #-------------------------------------------------------------------------------
 %changelog
+* Fri Aug 18 2017 John Thiltges <jthiltges@unl.edu>
+- Patch for XrdBuffer totbuf counter
+
 * Tue Aug 1 2017 Marian Zvada <marian.zvada@cern.ch>
 - adds fixes for disk sync and reference count
 - adds CGI-like capability to XrdHttp
