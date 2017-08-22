@@ -852,6 +852,9 @@ fi
 # Changelog
 #-------------------------------------------------------------------------------
 %changelog
+* Tue Aug 22 2017 Marian Zvada <marian.zvada@cern.ch>
+- testing the xrootd-4.7.0-0.rc1.el7.src.rpm; patch for XrdBuffer included (now PR 571)
+
 * Fri Aug 18 2017 John Thiltges <jthiltges@unl.edu>
 - Patch for XrdBuffer totbuf counter
 
