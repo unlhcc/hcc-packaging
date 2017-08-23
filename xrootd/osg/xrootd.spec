@@ -205,9 +205,6 @@ server development.
 Summary:	Legacy xrootd headers
 Group:		Development/Libraries
 Requires:	%{name}-libs = %{epoch}:%{version}-%{release}
-%if %{?fedora}%{!?fedora:0} >= 10 || %{?rhel}%{!?rhel:0} >= 6
-BuildArch:	noarch
-%endif
 
 %description private-devel
 This package contains some private xrootd headers. The use of these
@@ -857,6 +854,7 @@ fi
 %changelog
 * Wed Aug 23 2017 Marian Zvada <marian.zvada@cern.ch>
 - testing the xrootd-4.7.0-0.rc1
+- removed BuildArch, private-devel has to be arch specific
 - patch for XrdBuffer included (now PR 571)
 - removed CXXFLAGS=-std=c++11 as it comes default in upstream
 - adjustements to spec file for adding libXrdSsiLib
