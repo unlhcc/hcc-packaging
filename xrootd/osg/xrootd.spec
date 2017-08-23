@@ -36,8 +36,8 @@
 #-------------------------------------------------------------------------------
 Name:      xrootd
 Epoch:     1
-Version:   4.6.2
-Release:   0.experimental.23.2bf7a9db.1%{?dist}%{?_with_cpp11:.cpp11}%{?_with_clang:.clang}
+Version:   4.7.0
+Release:   0.rc1%{?dist}%{?_with_clang:.clang}
 Summary:   Extended ROOT file server
 Group:     System Environment/Daemons
 License:   LGPLv3+
@@ -356,10 +356,6 @@ This package contains compatibility binaries for xrootd 3 servers.
 
 %build
 cd xrootd
-
-%if %{?_with_cpp11:1}%{!?_with_cpp11:0}
-export CXXFLAGS=-std=c++11
-%endif
 
 %if %{?_with_clang:1}%{!?_with_clang:0}
 export CC=clang
@@ -735,6 +731,10 @@ fi
 %{_libdir}/libXrdN2No2p-4.so
 %{_libdir}/libXrdOssSIgpfsT-4.so
 %{_libdir}/libXrdServer.so.*
+%{_libdir}/libXrdSsi-4.so
+%{_libdir}/libXrdSsiLib.so.*
+%{_libdir}/libXrdSsiLog-4.so
+%{_libdir}/libXrdSsiShMap.so.*
 %{_libdir}/libXrdThrottle-4.so
 
 %files server-devel
@@ -751,6 +751,8 @@ fi
 %files private-devel
 %defattr(-,root,root,-)
 %{_includedir}/xrootd/private
+%{_libdir}/libXrdSsiLib.so
+%{_libdir}/libXrdSsiShMap.so
 
 %files client
 %defattr(-,root,root,-)
@@ -798,6 +800,7 @@ fi
 %files tests
 %defattr(-,root,root,-)
 %{_bindir}/text-runner
+%{_bindir}/xrdshmap
 %{_libdir}/libXrdClTests.so
 %{_libdir}/libXrdClTestsHelper.so
 %{_libdir}/libXrdClTestMonitor*.so
@@ -852,8 +855,11 @@ fi
 # Changelog
 #-------------------------------------------------------------------------------
 %changelog
-* Tue Aug 22 2017 Marian Zvada <marian.zvada@cern.ch>
-- testing the xrootd-4.7.0-0.rc1.el7.src.rpm; patch for XrdBuffer included (now PR 571)
+* Wed Aug 23 2017 Marian Zvada <marian.zvada@cern.ch>
+- testing the xrootd-4.7.0-0.rc1
+- patch for XrdBuffer included (now PR 571)
+- removed CXXFLAGS=-std=c++11 as it comes default in upstream
+- adjustements to spec file for adding libXrdSsiLib
 
 * Fri Aug 18 2017 John Thiltges <jthiltges@unl.edu>
 - Patch for XrdBuffer totbuf counter
