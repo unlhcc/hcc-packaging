@@ -1,5 +1,5 @@
 Name: cvmfs-cache-hdfs
-Version: 1.3
+Version: 2.0
 Release: 1%{?dist}
 Summary: HDFS plugin for the CVMFS cache
 
@@ -10,12 +10,12 @@ URL: https://github.com/bbockelm/cvmfs-cache-hdfs
 # git archive --format=tgz --prefix=%{name}-%{version}/ v%{version} > %{name}-%{version}.tar.gz
 Source0: %{name}-%{version}.tar.gz
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
-BuildRequires: xrootd-server-devel >= 1:4.6
 BuildRequires: cmake
 BuildRequires: java7-devel
 BuildRequires: jpackage-utils
 BuildRequires: hadoop-libhdfs
 BuildRequires: openssl-devel
+BuildRequires: gcc-c++
 
 # 2.3.99 was a HCC-specific version with the external cache plugin API.
 BuildRequires: cvmfs-devel >= 2.3.99
@@ -42,12 +42,20 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root,-)
-%{_libexecdir}/cvmfs_cache_hdfs/cvmfs_cache_hdfs_plugin
-%{_libexecdir}/cvmfs_cache_hdfs/cvmfs_cache_hdfs
-%config(noreplace) %{_sysconfdir}/sysconfig/cvmfs_cache_hdfs
+%{_libexecdir}/cvmfs-cache-hdfs/cvmfs-cache-hdfs-plugin
+%{_libexecdir}/cvmfs-cache-hdfs/cvmfs-cache-hdfs
+%config(noreplace) %{_sysconfdir}/sysconfig/cvmfs-cache-hdfs
 %config %{_sysconfdir}/cvmfs/domain.d/osgstorage.org.conf
+%config %{_sysconfdir}/cvmfs/config.d/ligo.osgstorage.org.conf
+%config %{_sysconfdir}/cvmfs/config.d/cms.osgstorage.org.conf
+%config(noreplace) %{_sysconfdir}/cvmfs/cvmfs-cache-hdfs.conf
+%config(noreplace) %{_sysconfdir}/logrotate.d/cvmfs-cache-hdfs
 
 %changelog
+* Thu Aug 31 2017 Brian Bockelman <bbockelm@cse.unl.edu> - 2.0-1
+- Rename all binaries.
+- Adopt new naming scheme.
+
 * Sat Aug 05 2017 Brian Bockelman <bbockelm@cse.unl.edu> - 1.3-1
 - Fix potential segfault after an IO error.
 
