@@ -1,0 +1,35 @@
+From b4a4fb42e02b064c0b83a142077d1084eb1129f1 Mon Sep 17 00:00:00 2001
+From: John Thiltges <jthiltges2@unl.edu>
+Date: Wed, 13 Sep 2017 16:21:13 -0500
+Subject: [PATCH] XrdLink: Increment the IOSemaphore once for each waiting
+ thread
+
+Depending on timing, there may be more than one thread waiting on the
+IOSemaphore. (doPost > 1)
+
+Increment the semaphore once for each waiting thread.
+---
+ src/Xrd/XrdLink.cc | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/src/Xrd/XrdLink.cc b/src/Xrd/XrdLink.cc
+index eb8d941..1806529 100644
+--- a/src/Xrd/XrdLink.cc
++++ b/src/Xrd/XrdLink.cc
+@@ -1112,9 +1112,10 @@ void XrdLink::setRef(int use)
+              XrdLog->Emsg("Link", "Zero use count for", ID);
+             }
+     else if (InUse == 1 && doPost)
+-            {doPost--;
+-             IOSemaphore.Post();
+-             TRACEI(CONN, "setRef posted link");
++            {while(doPost--)
++                {IOSemaphore.Post();
++                 TRACEI(CONN, "setRef posted link");
++                }
+              opMutex.UnLock();
+             }
+     else if (InUse < 0)
+-- 
+2.7.5
+
