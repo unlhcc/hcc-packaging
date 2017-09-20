@@ -16,7 +16,7 @@
 Name:		xrootd
 Epoch:		1
 Version:	4.7.0
-Release:	1.20170918.1%{?dist}
+Release:	1.20170920.1%{?dist}
 Summary:	Extended ROOT file server
 
 Group:		System Environment/Daemons
@@ -25,6 +25,7 @@ URL:		http://xrootd.org/
 Source0:	%{name}-%{version}.tar.gz
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Patch0:		0001-XrdLink-Increment-the-IOSemaphore-once-for-each-wait.patch
+Patch1:         passthrough_authz.patch
 
 BuildRequires:	cmake
 BuildRequires:	krb5-devel
@@ -244,6 +245,7 @@ This package contains the API documentation of the xrootd libraries.
 %prep
 %setup -q
 %patch0 -p1
+%patch1 -p1
 
 %if %{?fedora}%{!?fedora:0} <= 9 && %{?rhel}%{!?rhel:0} <= 5
 # Older versions of SELinux do not have policy for open
@@ -643,6 +645,9 @@ fi
 %doc %{_pkgdocdir}
 
 %changelog
+* Wed Sep 20 2017 Brian Bockelman <bbockelm@cse.unl.edu> - 1:4.7.0-1.20170920.1
+- Add patch to pass-through Authorization header.
+
 * Mon Sep 18 2017 John Thiltges <jthiltges2@unl.edu> - 1:4.7.0-1.20170918.1
 - XrdLink refcount fix
 
