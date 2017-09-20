@@ -226,6 +226,7 @@ Patch8: osg_sysconfig_in_init_script.patch
 Patch15: wso2-axis2.patch
 
 Patch16: credmon_job_owner.patch
+Patch17: 0001-Use-the-job-owner-rather-than-the-uid-for-credential.patch
 
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
@@ -740,6 +741,7 @@ exit 0
 %endif
 
 %patch16 -p1
+%patch17 -p1
 
 # fix errant execute permissions
 find src -perm /a+x -type f -name "*.[Cch]" -exec chmod a-x {} \;
