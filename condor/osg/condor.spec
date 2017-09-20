@@ -233,6 +233,9 @@ BuildRequires: cmake
 BuildRequires: %_bindir/flex
 BuildRequires: %_bindir/byacc
 BuildRequires: pcre-devel
+%if 0%{?rhel} >= 7
+BuildRequires: perl-Data-Dumper
+%endif
 #BuildRequires: postgresql-devel
 BuildRequires: openssl-devel
 BuildRequires: krb5-devel
