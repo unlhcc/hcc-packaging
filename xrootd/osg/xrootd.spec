@@ -13,21 +13,19 @@
 %global use_libc_semaphore 0
 %endif
 
-%define snapshot_date 20171011
-%define snapshot_hash 65b89741
-%define snapshot_fullhash 65b897415db942586e6a3800c874b2319a2d1e49
+%define _alphatag rc1
+%define _release 1
 
 Name:		xrootd
 Epoch:		1
-Version:	4.7.0
-Release:	1.%{?snapshot_date}.1.git%{?snapshot_hash}%{?dist}
+Version:	4.7.1
+Release:	0.%{_release}.%{_alphatag}%{?dist}
 Summary:	Extended ROOT file server
 
 Group:		System Environment/Daemons
 License:	LGPLv3+
 URL:		http://xrootd.org/
-#Source0:	%{name}-%{version}.tar.gz
-Source0:	%{name}-%{snapshot_fullhash}.tar.gz
+Source0:	%{name}-%{version}-%{_alphatag}.tar.gz
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Patch0:		0001-Revert-XrdCl-Add-option-to-read-credentials-under-di.patch
 
@@ -247,8 +245,7 @@ BuildArch:	noarch
 This package contains the API documentation of the xrootd libraries.
 
 %prep
-#%setup -q
-%setup -q -n %{name}-%{snapshot_fullhash}
+%setup -q -n %{name}-%{version}-%{_alphatag}
 %patch0 -p1
 
 %if %{?fedora}%{!?fedora:0} <= 9 && %{?rhel}%{!?rhel:0} <= 5
@@ -649,23 +646,14 @@ fi
 %doc %{_pkgdocdir}
 
 %changelog
-* Wed Oct 11 2017 John Thiltges <jthiltges2@unl.edu> - 1:4.7.0-1.20171011.1.git65b89741
-- Rebuild against git master
+* Fri Oct 13 2017 John Thiltges <jthiltges2@unl.edu> - 1:4.7.1-rc1-1
+- Update to 4.7.1-rc1
 - Includes patches for SOFTWARE-2933
   - xrootd #595: XrdSecProtocolgsi::AuthzFunCheck() segfault patch
   - xrootd #596: XrdHttp file descriptor leak and other HTTP patches
 - Appears to have merged Brian's pass-through Authorization header patch
 - Revert "[XrdCl] Add option to read credentials under different fsuid/fsgid" (38eabaecad)
-  - Build fails with unused result error
-
-* Wed Oct 4 2017 John Thiltges <jthiltges2@unl.edu> - 1:4.7.0-1.20171004.1
-- XrdHttp kxr_close fix (xrootd #596)
-
-* Wed Sep 20 2017 Brian Bockelman <bbockelm@cse.unl.edu> - 1:4.7.0-1.20170920.1
-- Add patch to pass-through Authorization header.
-
-* Mon Sep 18 2017 John Thiltges <jthiltges2@unl.edu> - 1:4.7.0-1.20170918.1
-- XrdLink refcount fix
+  Build fails with unused result error
 
 * Tue Aug 20 2017 Marian Zvada <marian.zvada@cern.ch> - 1:4.7.0-1
 - Update to 4.7.0 SOFTWARE-2874
