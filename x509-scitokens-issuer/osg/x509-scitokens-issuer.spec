@@ -10,6 +10,7 @@ BuildArch:      noarch
 
 BuildRequires:  python-setuptools
 BuildRequires:  python-devel
+BuildRequires:  systemd
 %{?systemd_requires}
 
 Requires:       python2-scitokens
