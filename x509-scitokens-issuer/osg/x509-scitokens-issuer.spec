@@ -7,7 +7,9 @@ License:        Apache 2.0
 URL:            https://scitokens.org
 Source0:        %{name}-%{version}.tar.gz
 BuildArch:      noarch
- 
+
+BuildRequires:  python-setuptools
+BuildRequires:  python-devel
 %{?systemd_requires}
 
 Requires:       python2-scitokens
