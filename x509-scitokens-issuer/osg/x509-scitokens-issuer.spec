@@ -1,16 +1,13 @@
 Name:           x509-scitokens-issuer
-Version:        0.1.0
-Release:        0%{?dist}
+Version:        0.2.0
+Release:        1%{?dist}
 Summary:        SciTokens issuer based on X509 authentication.
 
 License:        Apache 2.0
 URL:            https://scitokens.org
 Source0:        %{name}-%{version}.tar.gz
 BuildArch:      noarch
-
-BuildRequires:  python-setuptools
-BuildRequires:  python-devel
-BuildRequires:  systemd
+ 
 %{?systemd_requires}
 
 Requires:       python2-scitokens
@@ -43,7 +40,7 @@ fi
 if [ ! -e /etc/x509-scitokens-issuer/issuer_key.jwks ]; then
   touch /etc/x509-scitokens-issuer/issuer_key.jwks
   chmod 640 /etc/x509-scitokens-issuer/issuer_key.jwks
-  chown root:apache: /etc/x509-scitokens-issuer/issuer_key.jwks
+  chown root:apache /etc/x509-scitokens-issuer/issuer_key.jwks
   scitokens-admin-create-key --private-keyfile /etc/x509-scitokens-issuer/issuer_key.pem --jwks-private > /etc/x509-scitokens-issuer/issuer_key.jwks || :
 fi
 if [ ! -e /etc/x509-scitokens-issuer/issuer_public.jwks ]; then
@@ -64,12 +61,17 @@ fi
 %config(noreplace) %{_sysconfdir}/%{name}/rules.json
 %config(noreplace) %{_sysconfdir}/httpd/conf.d/x509_scitokens_issuer.conf
 %{_bindir}/cms-update-mapping
+%{_bindir}/cms-scitoken-init
 %{python2_sitelib}/x509_scitokens_issuer*
-%ghost %attr(0700, apache, apache) %dir %{_localstatedir}/cache/httpd/%{name}
-%attr(-, apache, apache) %{_localstatedir}/cache/httpd/%{name}/dn_mapping.json
+%attr(0700, apache, apache) %dir %{_localstatedir}/cache/httpd/%{name}
+%ghost %attr(-, apache, apache) %{_localstatedir}/cache/httpd/%{name}/dn_mapping.json
 %{_unitdir}/cms-mapping-updater.service
 %{_unitdir}/cms-mapping-updater.timer
 %{_datarootdir}/%{name}/x509_scitokens_issuer.cfg
 %{_localstatedir}/www/wsgi-scripts/%{name}.wsgi
 
 %changelog
+* Mon Nov 06 2017 Brian Bockelman <bbockelm@cse.unl.edu> - 0.2.0-1
+- Add tool for generating SciToken.
+- Fix various small packaging errors.
+
