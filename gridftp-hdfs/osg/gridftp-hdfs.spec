@@ -3,7 +3,7 @@
 
 Name:           gridftp-hdfs
 Version:        1.1
-Release:        1.1%{?gitrev:.%{gitrev}git}%{?dist}
+Release:        1.2%{?gitrev:.%{gitrev}git}%{?dist}
 Summary:        HDFS DSI plugin for GridFTP
 Group:          System Environment/Daemons
 License:        ASL 2.0
@@ -55,6 +55,7 @@ HDFS DSI plugin for GridFTP
 
 %setup -q
 %patch0 -p1
+%patch1 -p1
 
 %build
 
@@ -104,6 +105,9 @@ fi
 %{_datarootdir}/osg/sysconfig/globus-gridftp-server-plugin
 
 %changelog
+* Tue Nov 07 2017 Brian Bockelman <bbockelm@cse.unl.edu> - 1.1-1.2
+- Apply patch for avoiding double-free in paths.
+
 * Thu Oct 26 2017 Mátyás Selmeci <matyas@cs.wisc.edu> - 1.1-1.1
 - Merge OSG changes (osg-sysconfig.patch)
 
