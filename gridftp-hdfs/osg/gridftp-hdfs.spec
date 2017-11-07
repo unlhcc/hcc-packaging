@@ -1,9 +1,9 @@
 # Have gitrev be the short hash or branch name if doing a prerelease build
-# %define gitrev
+#define gitrev
 
 Name:           gridftp-hdfs
-Version:        1.0
-Release:        1%{?gitrev:.%{gitrev}git}%{?dist}
+Version:        1.1
+Release:        1.1%{?gitrev:.%{gitrev}git}%{?dist}
 Summary:        HDFS DSI plugin for GridFTP
 Group:          System Environment/Daemons
 License:        ASL 2.0
@@ -14,6 +14,8 @@ URL:            https://github.com/opensciencegrid/gridftp_hdfs
 #   Prerelease:
 #     git archive --prefix=%{name}-%{version}/ %{gitrev} | gzip -n > %{name}-%{version}-%{gitrev}.tar.gz
 Source0:        %{name}-%{version}%{?gitrev:-%{gitrev}}.tar.gz
+Patch0:        osg-sysconfig.patch
+Patch1:        avoid_double_free.patch
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -52,6 +54,7 @@ HDFS DSI plugin for GridFTP
 %prep
 
 %setup -q
+%patch0 -p1
 
 %build
 
@@ -101,6 +104,16 @@ fi
 %{_datarootdir}/osg/sysconfig/globus-gridftp-server-plugin
 
 %changelog
+* Thu Oct 26 2017 Mátyás Selmeci <matyas@cs.wisc.edu> - 1.1-1.1
+- Merge OSG changes (osg-sysconfig.patch)
+
+* Thu Oct 26 2017 Brian Bockelman <bbockelm@cse.unl.edu> - 1.1-1
+- Add support for CVMFS-style block checksums.
+- Minor deadlock fixes contributed by JasonAlt.
+
+* Tue Sep 05 2017 Mátyás Selmeci <matyas@cs.wisc.edu> - 1.0-1.1
+- Add osg-sysconfig.patch
+
 * Thu Aug 24 2017 Mátyás Selmeci <matyas@cs.wisc.edu> - 1.0-1
 - Update to latest version from github (SOFTWARE-2856)
 - Remove upstreamed patches
