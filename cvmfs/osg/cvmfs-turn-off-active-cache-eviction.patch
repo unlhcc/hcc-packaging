@@ -1,0 +1,28 @@
+From ec50d26a13db0de0111f1ba3ddc221a16eab7d05 Mon Sep 17 00:00:00 2001
+From: Jakob Blomer <jblomer@cern.ch>
+Date: Wed, 8 Nov 2017 16:32:46 +0100
+Subject: [PATCH] workaround: turn off active cache eviction
+
+---
+ cvmfs/fuse_evict.cc | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/cvmfs/fuse_evict.cc b/cvmfs/fuse_evict.cc
+index 5ee68368e..7a981e291 100644
+--- a/cvmfs/fuse_evict.cc
++++ b/cvmfs/fuse_evict.cc
+@@ -60,7 +60,10 @@ bool FuseInvalidator::HasFuseNotifyInval() {
+    * that doesn't support active invalidation?  How old does the kernel need
+    * to be?  Probably that situation is never triggered in practice.
+    */
+-  return FUSE_VERSION >= 29;
++  // Invalidation of entries can silently remove mount points on top of cvmfs.
++  // Turning active evition off for the time being.
++  // return FUSE_VERSION >= 29;
++  return false;
+ }
+ 
+ 
+-- 
+2.13.6
+

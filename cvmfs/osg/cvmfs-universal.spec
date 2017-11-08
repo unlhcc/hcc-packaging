@@ -8,6 +8,9 @@
 %define selinux_cvmfs 1
 %define selinux_variants mls strict targeted
 %endif
+%if 0%{?el7} || 0%{?fedora}
+%define selinux_cvmfs_server 1
+%endif
 %if 0%{?dist:1}
 %else
   %define redhat_major %(cat /etc/issue | head -n1 | tr -cd [0-9] | head -c1)
@@ -30,8 +33,8 @@
 
 Summary: CernVM File System
 Name: cvmfs
-Version: 2.3.99.2.pre2
-Release: 1%{?dist}
+Version: 2.4.2
+Release: 1.20171108.1%{?dist}
 Source0: https://ecsft.cern.ch/dist/cvmfs/%{name}-%{version}.tar.gz
 %if 0%{?selinux_cvmfs}
 Source1: cvmfs.te
@@ -41,7 +44,7 @@ Group: Applications/System
 License: BSD
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-Patch0: cvmfs-prerelease-version.patch
+Patch0: cvmfs-turn-off-active-cache-eviction.patch
 
 %if 0%{?el5}
 BuildRequires: buildsys-macros
@@ -114,6 +117,10 @@ Requires: util-linux
     %endif
   %endif
 %endif
+%if 0%{?fedora}
+# For cvmfs_talk, does not necessarily come with Fedora >= 25
+Requires: perl-Getopt-Long
+%endif
 Requires: cvmfs-config
 
 # SELinux integration
@@ -168,6 +175,10 @@ Requires: rsync
 Requires: usbutils
 %if 0%{?el6} || 0%{?el7} || 0%{?fedora} || 0%{?suse_version} >= 1300
 Requires: jq
+%endif
+%if 0%{?selinux_cvmfs_server}
+Requires(post): /usr/sbin/semanage
+Requires(postun): /usr/sbin/semanage
 %endif
 
 Conflicts: cvmfs-server < 2.1
@@ -355,6 +366,10 @@ fi
 
 %post server
 /usr/bin/cvmfs_server fix-permissions || :
+%if 0%{?selinux_cvmfs_server}
+# Port 8000 is also assigned to soundd (CVM-1308)
+/usr/sbin/semanage port -m -t http_port_t -p tcp 8000 2>/dev/null || :
+%endif
 
 %preun
 if [ $1 = 0 ] ; then
@@ -383,6 +398,14 @@ if [ $1 -eq 0 ]; then
     done
 fi
 %endif
+
+%postun server
+%if 0%{?selinux_cvmfs_server}
+if [ $1 -eq 0 ]; then
+  /usr/sbin/semanage port -d -t http_port_t -p tcp 8000 2>/dev/null || :
+fi
+%endif
+
 
 %files
 %defattr(-,root,root)
@@ -445,7 +468,7 @@ fi
 %{_libdir}/libtbbmalloc_cvmfs_debug.so
 %{_libdir}/libtbbmalloc_cvmfs_debug.so.2
 %dir %{_sysconfdir}/cvmfs/repositories.d
-/var/www/wsgi-scripts/cvmfs-api.wsgi
+/var/www/wsgi-scripts/cvmfs-server/cvmfs-api.wsgi
 /usr/share/cvmfs-server/
 /var/lib/cvmfs-server/
 /var/spool/cvmfs/README
@@ -458,6 +481,15 @@ fi
 %doc COPYING AUTHORS README.md ChangeLog
 
 %changelog
+* Wed Nov 08 2017 John Thiltges <jthiltges@unl.edu> - 2.4.2-1.20171108.1
+- Fix for Cache eviction through fuse_lowlevel_notify_inval_entry() removes
+  mount points (CVM-1423)
+* Wed Aug 02 2017 Jakob Blomer <jblomer@cern.ch> - 2.4.0
+- Fix dependencies for Fedora >= 25
+* Wed Jul 05 2017 Jakob Blomer <jblomer@cern.ch> - 2.4.0
+- Assign port 8000 to httpd in selinux configuration - 2.4.0
+* Thu Jun 29 2017 Jakob Blomer <jblomer@cern.ch> - 2.4.0
+- Add cvmfs_test_cache to unittests sub package
 * Tue May 09 2017 Dave Dykstra <dwd@fnal.gov> - 2.4.0
 - Add cvmfs_receiver
 * Wed Mar 22 2017 Jakob Blomer <jblomer@cern.ch> - 2.4.0

@@ -1,1 +1,1 @@
-type=git url=https://github.com/bbockelm/cvmfs.git tag=v2.3.99.2.pre2 hash=fb5246dc39a3b01f0213901b3b5c21dffbb9461a
+type=git url=https://github.com/cvmfs/cvmfs.git tag=cvmfs-2.4.2 hash=d4e1dcf405ce3c66eac346d34c91fb28aee6bc9d
