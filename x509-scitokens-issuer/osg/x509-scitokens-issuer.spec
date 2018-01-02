@@ -15,6 +15,7 @@ Source0:        %{name}-%{version}.tar.gz
 BuildRequires:  cmake
 BuildRequires:  python2-devel
 BuildRequires:  python2-setuptools
+BuildRequires:  boost-python
 
 Requires:       python2-scitokens
 Requires:       python-requests
