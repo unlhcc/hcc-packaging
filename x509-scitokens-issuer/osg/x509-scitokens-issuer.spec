@@ -16,6 +16,7 @@ BuildRequires:  cmake
 BuildRequires:  python2-devel
 BuildRequires:  python2-setuptools
 BuildRequires:  boost-devel
+BuildRequires:  systemd
 
 Requires:       python2-scitokens
 Requires:       python-requests
