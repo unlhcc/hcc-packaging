@@ -1,0 +1,109 @@
+diff --git a/src/XrdCrypto/XrdCryptoX509Chain.cc b/src/XrdCrypto/XrdCryptoX509Chain.cc
+index 44bdf0b..6ec5d12 100644
+--- a/src/XrdCrypto/XrdCryptoX509Chain.cc
++++ b/src/XrdCrypto/XrdCryptoX509Chain.cc
+@@ -586,7 +586,7 @@ int XrdCryptoX509Chain::Reorder()
+    }
+ 
+    // Move it in first position if not yet there
+-   if (nr && nr != begin) {
++   if (nr != begin) { 
+       np->SetNext(nr->Next()); // short cut old position
+       nr->SetNext(begin);      // set our next to present begin
+       if (end == nr)           // Update end
+diff --git a/src/XrdCrypto/XrdCryptosslRSA.cc b/src/XrdCrypto/XrdCryptosslRSA.cc
+index 1651dd1..65bf971 100644
+--- a/src/XrdCrypto/XrdCryptosslRSA.cc
++++ b/src/XrdCrypto/XrdCryptosslRSA.cc
+@@ -361,7 +361,7 @@ int XrdCryptosslRSA::GetPublen()
+    return publen;
+ }
+ //_____________________________________________________________________________
+-int XrdCryptosslRSA::ExportPublic(char *&out, int)
++int XrdCryptosslRSA::ExportPublic(char *out, int)
+ {
+    // Export the public key into buffer out. The length of the buffer should be
+    // at least GetPublen()+1 bytes. If out=0 the buffer is m-allocated internally
+@@ -426,7 +426,7 @@ int XrdCryptosslRSA::GetPrilen()
+ }
+ 
+ //_____________________________________________________________________________
+-int XrdCryptosslRSA::ExportPrivate(char *&out, int)
++int XrdCryptosslRSA::ExportPrivate(char *out, int)
+ {
+    // Export the private key into buffer out. The length of the buffer should be
+    // at least GetPrilen()+1 bytes. If out=0 the buffer is m-allocated internally
+diff --git a/src/XrdCrypto/XrdCryptosslRSA.hh b/src/XrdCrypto/XrdCryptosslRSA.hh
+index 16eefbe..4edda2e 100644
+--- a/src/XrdCrypto/XrdCryptosslRSA.hh
++++ b/src/XrdCrypto/XrdCryptosslRSA.hh
+@@ -70,9 +70,9 @@ public:
+ 
+    // Import / Export methods
+    int ImportPublic(const char *in, int lin);
+-   int ExportPublic(char *&out, int lout);
++   int ExportPublic(char *out, int lout);
+    int ImportPrivate(const char *in, int lin);
+-   int ExportPrivate(char *&out, int lout);
++   int ExportPrivate(char *out, int lout);
+ 
+    // Encryption / Decryption methods
+    int EncryptPrivate(const char *in, int lin, char *out, int lout);
+diff --git a/src/XrdHttp/XrdHttpProtocol.cc b/src/XrdHttp/XrdHttpProtocol.cc
+index 31cfc01..4b86c86 100644
+--- a/src/XrdHttp/XrdHttpProtocol.cc
++++ b/src/XrdHttp/XrdHttpProtocol.cc
+@@ -545,9 +545,12 @@ int XrdHttpProtocol::Process(XrdLink *lp) // We ignore the argument here
+       }
+ 
+ 
+-      if (CurrentReq.request == CurrentReq.rtUnknown) {
++      if (CurrentReq.request == CurrentReq.rtUnset) {
+         TRACE(DEBUG, " Parsing first line: " << tmpline);
+-        CurrentReq.parseFirstLine((char *)tmpline.c_str(), rc);
++        int result = CurrentReq.parseFirstLine((char *)tmpline.c_str(), rc);
++        if (result < 0) {
++          TRACE(DEBUG, " Parsing of first line failed with " << result);
++        }
+       }
+       else
+         CurrentReq.parseLine((char *)tmpline.c_str(), rc);
+diff --git a/src/XrdHttp/XrdHttpReq.cc b/src/XrdHttp/XrdHttpReq.cc
+index f58c2f4..3940142 100644
+--- a/src/XrdHttp/XrdHttpReq.cc
++++ b/src/XrdHttp/XrdHttpReq.cc
+@@ -814,7 +814,13 @@ int XrdHttpReq::ProcessHTTPReq() {
+   //
+ 
+   switch (request) {
++    case XrdHttpReq::rtUnset:
+     case XrdHttpReq::rtUnknown:
++    {
++      prot->SendSimpleResp(400, NULL, NULL, (char *) "Request unknown", 0);
++      reset();
++      return -1;
++    }
+     case XrdHttpReq::rtMalformed:
+     {
+       prot->SendSimpleResp(400, NULL, NULL, (char *) "Request malformed", 0);
+@@ -2254,7 +2260,7 @@ void XrdHttpReq::reset() {
+   if (ralist) free(ralist);
+   ralist = 0;
+ 
+-  request = rtUnknown;
++  request = rtUnset;
+   resource = "";
+   allheaders.clear();
+ 
+diff --git a/src/XrdHttp/XrdHttpReq.hh b/src/XrdHttp/XrdHttpReq.hh
+index 68d051b..7c9ee80 100644
+--- a/src/XrdHttp/XrdHttpReq.hh
++++ b/src/XrdHttp/XrdHttpReq.hh
+@@ -144,6 +144,7 @@ public:
+   /// These are the HTTP/DAV requests that we support
+ 
+   enum ReqType {
++    rtUnset = -1,
+     rtUnknown = 0,
+     rtMalformed,
+     rtGET,

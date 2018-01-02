@@ -1,0 +1,273 @@
+diff --git a/src/XrdHttp/XrdHttpExtHandler.cc b/src/XrdHttp/XrdHttpExtHandler.cc
+index 349ba1c..ea03269 100644
+--- a/src/XrdHttp/XrdHttpExtHandler.cc
++++ b/src/XrdHttp/XrdHttpExtHandler.cc
+@@ -27,13 +27,27 @@
+ #include "XrdHttpProtocol.hh"
+ 
+ /// Sends a basic response. If the length is < 0 then it is calculated internally
+-int XrdHttpExtReq::SendSimpleResp(int code, char* desc, char* header_to_add, char* body, long long int bodylen)
++int XrdHttpExtReq::SendSimpleResp(int code, const char* desc, const char* header_to_add, const char* body, long long int bodylen)
+ {
+   if (!prot) return -1;
+   
+   return prot->SendSimpleResp(code, desc, header_to_add, body, bodylen);
+ }
+ 
++int XrdHttpExtReq::StartChunkedResp(int code, const char *desc, const char *header_to_add)
++{
++  if (!prot) return -1;
++
++  return prot->StartChunkedResp(code, desc, header_to_add);
++}
++
++int XrdHttpExtReq::ChunkResp(const char *body, long long bodylen)
++{
++  if (!prot) return -1;
++
++  return prot->ChunkResp(body, bodylen);
++}
++
+ int XrdHttpExtReq::BuffgetData(int blen, char **data, bool wait) {
+ 
+   if (!prot) return -1;
+diff --git a/src/XrdHttp/XrdHttpExtHandler.hh b/src/XrdHttp/XrdHttpExtHandler.hh
+index 0159094..c2c4f97 100644
+--- a/src/XrdHttp/XrdHttpExtHandler.hh
++++ b/src/XrdHttp/XrdHttpExtHandler.hh
+@@ -62,7 +62,15 @@ public:
+   int BuffgetData(int blen, char **data, bool wait);
+ 
+   /// Sends a basic response. If the length is < 0 then it is calculated internally
+-  int SendSimpleResp(int code, char *desc, char *header_to_add, char *body, long long bodylen);
++  int SendSimpleResp(int code, const char *desc, const char *header_to_add, const char *body, long long bodylen);
++
++  /// Starts a chunked response; body of request is sent over multiple parts using the SendChunkResp
++  //  API.
++  int StartChunkedResp(int code, const char *desc, const char *header_to_add);
++
++  /// Send a (potentially partial) body in a chunked response; invoking with NULL body
++  //  indicates that this is the last chunk in the response.
++  int ChunkResp(const char *body, long long bodylen);
+ };
+ 
+ 
+diff --git a/src/XrdHttp/XrdHttpProtocol.cc b/src/XrdHttp/XrdHttpProtocol.cc
+index 31cfc01..7a4644f 100644
+--- a/src/XrdHttp/XrdHttpProtocol.cc
++++ b/src/XrdHttp/XrdHttpProtocol.cc
+@@ -46,6 +46,7 @@
+ #include <openssl/ssl.h>
+ #include <vector>
+ #include <arpa/inet.h>
++#include <sstream>
+ #include <ctype.h>
+ 
+ #define XRHTTP_TK_GRACETIME     600
+@@ -1167,10 +1168,9 @@ int XrdHttpProtocol::BuffgetData(int blen, char **data, bool wait) {
+ 
+ /// Send some data to the client
+ 
+-int XrdHttpProtocol::SendData(char *body, int bodylen) {
+-  int r;
+-
++int XrdHttpProtocol::SendData(const char *body, int bodylen) {
+ 
++  int r;
+ 
+   if (body && bodylen) {
+     TRACE(REQ, "Sending " << bodylen << " bytes");
+@@ -1190,75 +1190,92 @@ int XrdHttpProtocol::SendData(char *body, int bodylen) {
+   return 0;
+ }
+ 
+-/// Sends a basic response. If the length is < 0 then it is calculated internally
+-/// Header_to_add is a set of header lines each CRLF terminated to be added to the header
+-/// Returns 0 if OK
++int XrdHttpProtocol::StartSimpleResp(int code, const char *desc, const char *header_to_add, long long bodylen) {
++  std::stringstream ss;
++  const std::string crlf = "\r\n";
+ 
+-int XrdHttpProtocol::SendSimpleResp(int code, char *desc, char *header_to_add, char *body, long long bodylen) {
+-  char outhdr[1024];
+-  char b[32];
+-  long long l;
+-  const char *crlf = "\r\n";
+-  outhdr[0] = '\0';
++  ss << "HTTP/1.1 " << code << " ";
++  if (desc) {
++    ss << desc;
++  } else {
++    if (code == 200) ss << "OK";
++    else if (code == 206) ss << "Partial content";
++    else if (code == 302) ss << "Redirect";
++    else if (code == 404) ss << "Not found";
++    else ss << "Unknown";
++  }
++  ss << crlf;
+ 
++  if (bodylen >= 0) ss << "Content-Length: " << bodylen << crlf;
+ 
+-  //
+-  // Prepare the header
+-  //
+-  strcat(outhdr, "HTTP/1.1 ");
+-  sprintf(b, "%d ", code);
+-  strcat(outhdr, b);
++  if (header_to_add)
++    ss << header_to_add << crlf;
+ 
+-  if (desc) strcat(outhdr, desc);
+-  else {
+-    if (code == 200) strcat(outhdr, "OK");
+-    else if (code == 206) strcat(outhdr, "Partial content");
+-    else if (code == 302) strcat(outhdr, "Redirect");
+-    else if (code == 404) strcat(outhdr, "Not found");
+-    else strcat(outhdr, "Unknown");
+-  }
+-  strncat(outhdr, crlf, 2);
++  ss << crlf;
+ 
+-  //strcat(outhdr, "Content-Type: text/html");
+-  //strncat(outhdr, crlf, 2);
++  const std::string &outhdr = ss.str();
++  TRACEI(RSP, "Sending resp: " << code << " header len:" << outhdr.size());
++  if (SendData(outhdr.c_str(), outhdr.size()))
++    return -1;
+ 
+-  l = bodylen;
+-  if (l <= 0) {
+-    if (body) l = strlen(body);
+-    else l = 0;
+-  }
++  return 0;
++}
+ 
+-  sprintf(b, "%lld", l);
+-  strcat(outhdr, "Content-Length: ");
+-  strcat(outhdr, b);
+-  strncat(outhdr, crlf, 2);
++int XrdHttpProtocol::StartChunkedResp(int code, const char *desc, const char *header_to_add) {
++  const std::string crlf = "\r\n";
+ 
++  std::stringstream ss;
+   if (header_to_add) {
+-    strcat(outhdr, header_to_add);
+-    strncat(outhdr, crlf, 2);
++    ss << header_to_add << crlf;
+   }
+-  strncat(outhdr, crlf, 2);
++  ss << "Transfer-Encoding: chunked";
+ 
+-  unsigned int hdrlen = strlen(outhdr);
+-  if (hdrlen >= sizeof(outhdr))
+-    TRACEI(ALL, "WARNING: header size too large!");
+-  
+-  //
+-  // Send the header
+-  //
+-  TRACEI(RSP, "Sending resp: " << code << " len:" << l);
++  TRACEI(RSP, "Starting chunked response");
++  return StartSimpleResp(code, desc, ss.str().c_str(), -1);
++}
++
++int XrdHttpProtocol::ChunkResp(const char *body, long long bodylen) {
++  const std::string crlf = "\r\n";
++  long long chunk_length = bodylen;
++  if (bodylen <= 0) {
++    chunk_length = body ? strlen(body) : 0;
++  }
++  std::stringstream ss;
++
++  ss << std::hex << chunk_length << std::dec << crlf;
++
++  const std::string &chunkhdr = ss.str();
++  TRACEI(RSP, "Sending encoded chunk of size " << chunk_length);
++  if (SendData(chunkhdr.c_str(), chunkhdr.size()))
++    return -1;
++
++  if (body && SendData(body, chunk_length))
++    return -1;
++
++  return (SendData(crlf.c_str(), crlf.size())) ? -1 : 0;
++}
++
++/// Sends a basic response. If the length is < 0 then it is calculated internally
++/// Header_to_add is a set of header lines each CRLF terminated to be added to the header
++/// Returns 0 if OK
+ 
+-  if (SendData(outhdr, hdrlen))
++int XrdHttpProtocol::SendSimpleResp(int code, const char *desc, const char *header_to_add, const char *body, long long bodylen) {
++
++  long long content_length = bodylen;
++  if (bodylen <= 0) {
++    content_length = body ? strlen(body) : 0;
++  }
++
++  if (StartSimpleResp(code, desc, header_to_add, content_length) < 0)
+     return -1;
+ 
+   //
+   // Send the data
+   //
+   if (body)
+-    return SendData(body, l);
++    return SendData(body, content_length);
+ 
+   return 0;
+-
+ }
+ 
+ int XrdHttpProtocol::Configure(char *parms, XrdProtocol_Config * pi) {
+diff --git a/src/XrdHttp/XrdHttpProtocol.hh b/src/XrdHttp/XrdHttpProtocol.hh
+index 59b0e65..310b9b0 100644
+--- a/src/XrdHttp/XrdHttpProtocol.hh
++++ b/src/XrdHttp/XrdHttpProtocol.hh
+@@ -120,9 +120,10 @@ public:
+   static XrdObjectQ<XrdHttpProtocol> ProtStack;
+   XrdObject<XrdHttpProtocol> ProtLink;
+ 
+-  
++
+   /// Authentication area
+   XrdSecEntity SecEntity;
++
+ private:
+ 
+ 
+@@ -132,8 +133,11 @@ private:
+   /// Initialization of the ssl security things
+   static int InitSecurity();
+ 
++  /// Start a response back to the client
++  int StartSimpleResp(int code, const char *desc, const char *header_to_add, long long bodylen);
++
+   /// Send some generic data to the client
+-  int SendData(char *body, int bodylen);
++  int SendData(const char *body, int bodylen);
+ 
+   /// Deallocate resources, in order to reutilize an object of this class
+   void Cleanup();
+@@ -220,12 +224,17 @@ private:
+   int BuffgetData(int blen, char **data, bool wait);
+   /// Copy a full line of text from the buffer into dest. Zero if no line can be found in the buffer
+   int BuffgetLine(XrdOucString &dest);
+-  
+-  
+-  
++
+   /// Sends a basic response. If the length is < 0 then it is calculated internally
+-  int SendSimpleResp(int code, char *desc, char *header_to_add, char *body, long long bodylen);
+-  
++  int SendSimpleResp(int code, const char *desc, const char *header_to_add, const char *body, long long bodylen);
++
++  /// Starts a chunked response; body of request is sent over multiple parts using the SendChunkResp
++  //  API.
++  int StartChunkedResp(int code, const char *desc, const char *header_to_add);
++
++  /// Send a (potentially partial) body in a chunked response; invoking with NULL body
++  //  indicates that this is the last chunk in the response.
++  int ChunkResp(const char *body, long long bodylen);
+   
+   /// Gets a string that represents the IP address of the client. Must be freed
+   char *GetClientIPStr();

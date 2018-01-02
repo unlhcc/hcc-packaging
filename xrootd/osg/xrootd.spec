@@ -48,6 +48,10 @@ URL:       http://xrootd.org/
 # git-archive master | gzip -9 > ~/rpmbuild/SOURCES/xrootd.tgz
 Source0:   xrootd-%{version}.tar.gz
 
+Patch0: http_allow_unknown_verbs.patch
+Patch1: http_chunked_encoding
+Patch2: http_put_flags.patch
+
 %if %{?_with_compat:1}%{!?_with_compat:0}
 Source1:   xrootd-3.3.6.tar.gz
 %endif
@@ -372,6 +376,9 @@ This package contains compatibility binaries for xrootd 3 servers.
 #-------------------------------------------------------------------------------
 %prep
 %setup
+%patch0 -p1
+%patch1 -p1
+%patch2 -p1
 
 %if %{?_with_compat:1}%{!?_with_compat:0}
 %setup -T -D -n %{name} -a 1
