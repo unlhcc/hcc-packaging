@@ -36,7 +36,7 @@
 #-------------------------------------------------------------------------------
 Name:      xrootd
 Epoch:     1
-Version:   4.7.99
+Version:   4.8.99
 Release:   0.1.alpha1%{?dist}%{?_with_clang:.clang}
 Summary:   Extended ROOT file server
 Group:     System Environment/Daemons
@@ -62,7 +62,14 @@ BuildRequires: libxml2-devel
 BuildRequires: krb5-devel
 BuildRequires: zlib-devel
 BuildRequires: ncurses-devel
-BuildRequires: python-devel
+
+BuildRequires: python2-devel
+%if %{?fedora}%{!?fedora:0} >= 13
+BuildRequires: python3-devel
+%else
+BuildRequires: python34-devel
+%endif
+
 BuildRequires: openssl-devel
 
 BuildRequires: selinux-policy-devel
@@ -252,15 +259,36 @@ This package contains the FUSE (file system in user space) xrootd mount
 tool.
 
 #-------------------------------------------------------------------------------
-# python
+# python2
 #-------------------------------------------------------------------------------
-%package python
-Summary:	Python bindings for XRootD
-Group:		Development/Libraries
-Requires:	%{name}-client-libs%{?_isa} = %{epoch}:%{version}-%{release}
+%package -n python2-%{name}
+Summary:       Python 2 bindings for XRootD
+Group:         Development/Libraries
+%if %{?fedora}%{!?fedora:0} >= 13
+%{?python_provide:%python_provide python2-%{name}}
+%else
+Provides:      python-%{name}
+%endif
+Provides:      %{name}-python = %{epoch}:%{version}-%{release}
+Obsoletes:     %{name}-python < 1:4.8.0-1
+Requires:      %{name}-client-libs%{?_isa} = %{epoch}:%{version}-%{release}
 
-%description python
-Python bindings for XRootD
+%description -n python2-xrootd
+Python 2 bindings for XRootD
+
+#-------------------------------------------------------------------------------
+# python3
+#-------------------------------------------------------------------------------
+%package -n python3-%{name}
+Summary:       Python 3 bindings for XRootD
+Group:         Development/Libraries
+%if %{?fedora}%{!?fedora:0} >= 13
+%{?python_provide:%python_provide python3-%{name}}
+%endif
+Requires:      %{name}-client-libs%{?_isa} = %{epoch}:%{version}-%{release}
+
+%description -n python3-xrootd
+Python 3 bindings for XRootD
 
 #-------------------------------------------------------------------------------
 # doc
@@ -390,6 +418,11 @@ popd
 popd
 %endif
 
+# build python3 bindings
+pushd build/bindings/python
+%py3_build
+popd
+
 #-------------------------------------------------------------------------------
 # Installation
 #-------------------------------------------------------------------------------
@@ -497,6 +530,11 @@ cp -pr doxydoc/html %{buildroot}%{_docdir}/%{name}-%{version}
 mkdir -p %{buildroot}%{_datadir}/selinux/packages/%{name}
 install -m 644 -p packaging/common/xrootd.pp \
     %{buildroot}%{_datadir}/selinux/packages/%{name}/%{name}.pp
+
+# install python3 bindings
+pushd build/bindings/python
+%py3_install
+popd
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -774,8 +812,12 @@ fi
 %{_mandir}/man1/xrootdfs.1*
 %dir %{_sysconfdir}/xrootd
 
-%files python -f build/PYTHON_INSTALLED_FILES
+%files -n python2-%{name} -f build/PYTHON_INSTALLED_FILES
 %defattr(-,root,root,-)
+
+%files -n python3-%{name}
+%defattr(-,root,root,-)
+%{python3_sitearch}/*
 
 %files doc
 %defattr(-,root,root,-)
@@ -848,6 +890,10 @@ fi
 # Changelog
 #-------------------------------------------------------------------------------
 %changelog
+* Fri Nov 10 2017 Michal Simon <michal.simon@cern.ch> - 1:4.8.0-1
+- Add python3 sub-package
+- Rename python sub-package
+
 * Tue Dec 13 2016 Gerardo Ganis <gerardo.ganis@cern.ch>
 - Add xrdgsitest to xrootd-client-devel
 
