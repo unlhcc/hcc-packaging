@@ -1,7 +1,7 @@
 
 Name: xrootd-lcmaps
-Version: 1.3.4
-Release: 1.20170808.1%{?dist}
+Version: 1.4.0
+Release: 1%{?dist}
 Summary: LCMAPS plugin for xrootd
 
 Group: System Environment/Daemons
@@ -10,8 +10,6 @@ URL: https://github.com/opensciencegrid/xrootd-lcmaps
 # Generated from:
 # git archive v%{version} --prefix=xrootd-lcmaps-%{version}/ | gzip -7 > ~/rpmbuild/SOURCES/xrootd-lcmaps-%{version}.tar.gz
 Source0: %{name}-%{version}.tar.gz
-Patch0: sw2848-enable-voms-attributes-verification.patch
-Patch1: 0001-Use-single-shared-mutex-for-LCMAPS-calls-from-XrdLcm.patch
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 BuildRequires: xrootd-server-libs >= 1:4.1.0
 BuildRequires: xrootd-server-devel >= 1:4.1.0
@@ -33,10 +31,7 @@ Requires: xrootd-server >= 1:4.6.1
 %{summary}
 
 %prep
-
 %setup -q
-%patch0 -p1
-%patch1 -p1
 
 %build
 
@@ -66,11 +61,14 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) %{_sysconfdir}/xrootd/lcmaps.cfg
 
 %changelog
-* Tue Aug 08 2017 John Thiltges <jthiltges2@unl.edu> - 1.3.4-1.20170808
-- Use single mutex for all LCMAPS calls
+* Tue Jan 02 2018 Brian Bockelman <bbockelm@cse.unl.edu> - 1.4.0-1
+- Allow authentication to continue even when authz fails.
 
-* Mon Aug 07 2017 Marian Zvada <marian.zvada@cern.ch> - 1.3.4-1
-- includes cleanup of various OpesnSSL-related bugs from 1.3.4 github tag
+* Tue Aug 29 2017 Brian Bockelman <bbockelm@cse.unl.edu> - 1.3.5-1
+- Fix ability to specify an alternate policy name.
+
+* Mon Aug  1 2017 Brian Bockelman <bbockelm@cse.unl.edu> - 1.3.4-1
+- Cleanup various OpenSSL-related bugs.
 
 * Mon Jul 31 2017 Mátyás Selmeci <matyas@cs.wisc.edu> - 1.3.3-4
 - Always enable VOMS attributes verification (SOFTWARE-2848)
