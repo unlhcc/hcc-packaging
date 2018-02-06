@@ -1,5 +1,5 @@
 Name:           x509-scitokens-issuer
-Version:        0.3.0
+Version:        0.4.0
 Release:        1%{?dist}
 Summary:        SciTokens issuer based on X509 authentication.
 
@@ -12,7 +12,7 @@ Source0:        %{name}-%{version}.tar.gz
  
 %{?systemd_requires}
 
-BuildRequires:  cmake
+BuildRequires: cmake
 BuildRequires:  python2-devel
 BuildRequires:  python2-setuptools
 BuildRequires:  boost-devel
@@ -100,6 +100,9 @@ fi
 %{_libdir}/libX509SciTokensIssuer.so
 
 %changelog
+* Tue Feb 06 2018 Brian Bockelman <bbockelm@cse.unl.edu> - 0.4.0-1
+- Add new generic issuer CLI.
+
 * Fri Dec 29 2017 Brian Bockelman <bbockelm@cse.unl.edu> - 0.3.0-1
 - Add C library interface for the token retrieval.
 
