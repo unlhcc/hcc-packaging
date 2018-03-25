@@ -181,7 +181,7 @@ index 15527f7..280d787 100644
 +    m_bio_type = (26|0x0400|0x0100);
 +    m_bio_method = static_cast<BIO_METHOD*>(OPENSSL_malloc(sizeof(BIO_METHOD)));
 +    if (m_bio_method) {
-+      memset(m_bio_method, sizeof(BIO_METHOD), '\0');
++      memset(m_bio_method, '\0', sizeof(BIO_METHOD));
 +      m_bio_method->type = m_bio_type;
 +      m_bio_method->bwrite = BIO_XrdLink_write;
 +      m_bio_method->bread = BIO_XrdLink_read;
