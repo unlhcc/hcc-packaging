@@ -151,7 +151,7 @@ index 15527f7..280d787 100644
 +    return NULL;
 +
 +  BIO *ret = BIO_new(m_bio_method);
-+
++  ret->shutdown = 0;
 +  ret->ptr = lp;
 +  ret->init = 1;
 +  return ret;

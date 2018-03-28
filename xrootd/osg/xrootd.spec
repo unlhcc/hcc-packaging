@@ -14,7 +14,7 @@
 %endif
 
 %define _alphatag rc3
-%define _release 1.1
+%define _release 1.2
 
 # e.g. '-rc3' or blank
 %define _alphasuffix %{?_alphatag:-%{_alphatag}}
@@ -668,6 +668,12 @@ fi
 %doc %{_pkgdocdir}
 
 %changelog
+* Wed Mar 28 2018 Brian Bockelman <bbockelm@cse.unl.edu> - 1:4.8.2-0.1.2.rc3
+- Do not close XrdLink object.
+
+* Wed Mar 28 2018 Brian Bockelman <bbockelm@cse.unl.edu> - 1:4.8.2-0.1.1.rc3.1
+- Do not close XrdLink object.
+
 * Tue Mar 20 2018 Marian Zvada <marian.zvada@cern.ch> - 1:4.8.2-0.1.rc3
 - update to RC3, includes patch from previous build
 - SOFTWARE-3173
