@@ -1,18 +1,20 @@
 Name:		libmacaroons
 Version:	0.3.0
-Release:	0%{?dist}
-Summary:	C library supporting generation and use of macaroons.
+Release:	1%{?dist}
+Summary:	C library supporting generation and use of macaroons
 
-Group:		System Environment/Libraries
-License:	BSD 3-clause
-URL:		https://github.com/rescrv/libmacaroons/releases
-Source0:	%{name}-%{version}.tar.gz
+License:	BSD
+URL:		https://github.com/rescrv/libmacaroons
+Source0:	%url/archive/releases/%{version}.tar.gz#/%{name}-%{version}.tar.gz
+# Fix for the inspect() method triggering an assert on newer versions of libsodium.
+# See the upstream PR: https://github.com/rescrv/libmacaroons/pull/52
+Patch0:		libmacaroons-hex-encoding.patch
 
 BuildRequires:	libsodium-devel
-BuildRequires:  autoconf
-BuildRequires:  automake
-BuildRequires:  libtool
-BuildRequires:	python-devel
+BuildRequires:	autoconf
+BuildRequires:	automake
+BuildRequires:	libtool
+BuildRequires:	python2-devel
 BuildRequires:	Cython
 
 %description
@@ -20,7 +22,8 @@ BuildRequires:	Cython
 
 %package -n python2-macaroons
 Summary:	Python 2 bindings for libmacaroons
-Requires:	%{name} = %{version}-%{release}
+Requires:	%{name}%{?_isa} = %{version}-%{release}
+%{?python_provide:%python_provide python2-macaroons}
 
 %description -n python2-macaroons
 %{summary}
@@ -34,22 +37,25 @@ Requires:	%{name} = %{version}-%{release}
 
 %prep
 %setup -q
-
+%patch0 -p 1
 
 %build
 autoreconf -i
 %configure --enable-python-bindings
-make %{?_smp_mflags}
+%make_build
 
+%ldconfig_scriptlets
 
 %install
-make install DESTDIR=%{buildroot}
+%make_install
 rm -f %{buildroot}%{_libdir}/%{name}.la
 rm -f %{buildroot}%{_libdir}/%{name}.a
 rm -f %{buildroot}%{python2_sitearch}/macaroons.a
 rm -f %{buildroot}%{python2_sitearch}/macaroons.la
 
 %files
+%license LICENSE
+%doc README
 %{_libdir}/%{name}.so.*
 
 %files -n python2-macaroons
@@ -61,4 +67,7 @@ rm -f %{buildroot}%{python2_sitearch}/macaroons.la
 %{_includedir}/macaroons.h
 
 %changelog
+* Thu Jun 14 2018 Brian Bockelman <bbockelm@cse.unl.edu> - 0.3.0-1
+- Initial packaging of libmacaroons.
+
 
