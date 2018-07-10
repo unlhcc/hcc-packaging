@@ -2,7 +2,7 @@
 %global pypi_name scitokens
 
 Name:           python-%{pypi_name}
-Version:        0.3.3
+Version:        1.1.1
 Release:        1%{?dist}
 Summary:        SciToken reference implementation library
 
@@ -12,7 +12,7 @@ Source0:        https://files.pythonhosted.org/packages/source/s/%{pypi_name}/%{
 BuildArch:      noarch
  
 BuildRequires:  python2-devel
-BuildRequires:  python2-setuptools
+BuildRequires:  python-setuptools
 
 %description
 SciToken reference implementation library
@@ -48,6 +48,19 @@ rm -rf %{pypi_name}.egg-info
 %{python2_sitelib}/%{pypi_name}-%{version}-py?.?.egg-info
 
 %changelog
+* Tue Jul 10 2018 Brian Bockelman <bbockelm@cse.unl.edu> - 1.1.1-1
+- Update to the 1.1.1 release.
+- Add support for Elliptic Curve cryptography.
+- Issue the new-style `scope` claim.
+
+* Tue Jan 30 2018 Derek Weitzel <dweitzel@cse.unl.edu> - 1.0.2-1
+- Fix bug when configuration is not specified
+
+* Tue Jan 30 2018 Derek Weitzel <dweitzel@cse.unl.edu> - 1.0.0-1
+- Add optional configuration file
+- Fix bug for missing kid
+- Add automatic jti generation
+
 * Mon Nov 06 2017 Derek Weitzel <dweitzel@cse.unl.edu> - 0.3.3-1
 - Add subject testing in the Enforcer
 
