@@ -2,7 +2,7 @@
 %global pypi_name scitokens
 
 Name:           python-%{pypi_name}
-Version:        1.1.1
+Version:        1.2.0
 Release:        1%{?dist}
 Summary:        SciToken reference implementation library
 
@@ -48,10 +48,11 @@ rm -rf %{pypi_name}.egg-info
 %{python2_sitelib}/%{pypi_name}-%{version}-py?.?.egg-info
 
 %changelog
-* Tue Jul 10 2018 Brian Bockelman <bbockelm@cse.unl.edu> - 1.1.1-1
-- Update to the 1.1.1 release.
-- Add support for Elliptic Curve cryptography.
-- Issue the new-style `scope` claim.
+* Tue Jul 10 2018 Derek Weitzel <dweitzel@cse.unl.edu> - 1.2.0-1
+
+* Fri Jul 6 2018 Derek Weitzel <dweitzel@cse.unl.edu> - 1.1.0-1
+- Add support for updated RFC for "scope"
+- Add support for Elliptic Curve cryptography
 
 * Tue Jan 30 2018 Derek Weitzel <dweitzel@cse.unl.edu> - 1.0.2-1
 - Fix bug when configuration is not specified
