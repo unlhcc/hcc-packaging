@@ -1,1 +1,1 @@
-type=git url=https://github.com/bbockelm/x509-scitokens-issuer.git tag=v0.5.0 hash=305dd7427ff6eedba13240d2872d57c1e5c2f62b
+type=git url=https://github.com/scitokens/x509-scitokens-issuer.git tag=v0.5.1 hash=d3e1283936ab9757f61a84f8847a21f4d4a1e1e1
