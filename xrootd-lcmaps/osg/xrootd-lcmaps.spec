@@ -1,7 +1,7 @@
 
 Name: xrootd-lcmaps
 Version: 1.4.0
-Release: 1%{?dist}
+Release: 1.20180809.1%{?dist}
 Summary: LCMAPS plugin for xrootd
 
 Group: System Environment/Daemons
@@ -63,7 +63,7 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) %{_sysconfdir}/xrootd/lcmaps.cfg
 
 %changelog
-* Thu Aug 09 2018 John Thiltges <jthiltges2@unl.edu> - 1.4.0-1.20180809
+* Thu Aug 09 2018 John Thiltges <jthiltges2@unl.edu> - 1.4.0-1.20180809.1
 - Use single mutex for all LCMAPS calls
 
 * Tue Jan 02 2018 Brian Bockelman <bbockelm@cse.unl.edu> - 1.4.0-1
