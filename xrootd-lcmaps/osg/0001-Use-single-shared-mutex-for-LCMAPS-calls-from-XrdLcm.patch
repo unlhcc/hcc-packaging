@@ -1,4 +1,4 @@
-From 7218b4fce58d655ccfc6353354061ab0db07371a Mon Sep 17 00:00:00 2001
+From e0f158bc1e40a8bf7fdd2a51d576a8bd3c1f25fd Mon Sep 17 00:00:00 2001
 From: John Thiltges <jthiltges2@unl.edu>
 Date: Tue, 8 Aug 2017 10:04:18 -0500
 Subject: [PATCH] Use single shared mutex for LCMAPS calls from XrdLcmaps and
@@ -12,7 +12,7 @@ Subject: [PATCH] Use single shared mutex for LCMAPS calls from XrdLcmaps and
  4 files changed, 10 insertions(+), 6 deletions(-)
 
 diff --git a/src/XrdHttpLcmaps.cc b/src/XrdHttpLcmaps.cc
-index 9fcb0ba..70faf4b 100644
+index 816f502..e9608ae 100644
 --- a/src/XrdHttpLcmaps.cc
 +++ b/src/XrdHttpLcmaps.cc
 @@ -260,7 +260,7 @@ public:
@@ -25,7 +25,7 @@ index 9fcb0ba..70faf4b 100644
          char  *poolindex = NULL;
          uid_t  uid = -1;
 diff --git a/src/XrdLcmaps.cc b/src/XrdLcmaps.cc
-index f99fad8..d1153f3 100644
+index 549fe1d..4022583 100644
 --- a/src/XrdLcmaps.cc
 +++ b/src/XrdLcmaps.cc
 @@ -27,8 +27,6 @@
@@ -56,7 +56,7 @@ index f99fad8..d1153f3 100644
     /* -1 is the mapcounter */
     // Need char, not const char.  Don't know if LCMAPS changes it.
 diff --git a/src/XrdLcmapsConfig.cc b/src/XrdLcmapsConfig.cc
-index 932456b..65b2bf6 100644
+index f79bc87..e23540b 100644
 --- a/src/XrdLcmapsConfig.cc
 +++ b/src/XrdLcmapsConfig.cc
 @@ -4,6 +4,7 @@
@@ -67,7 +67,7 @@ index 932456b..65b2bf6 100644
  
  extern "C" {
  #include <lcmaps.h>
-@@ -132,3 +133,7 @@ int XrdSecgsiAuthzConfig(const char *cfg)
+@@ -133,3 +134,7 @@ int XrdSecgsiAuthzConfig(const char *cfg)
  
     return 0;
  }
@@ -90,5 +90,5 @@ index ad665e3..0bf8317 100644
  
  #endif
 -- 
-2.7.5
+2.17.1
 

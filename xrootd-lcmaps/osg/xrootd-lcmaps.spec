@@ -10,6 +10,7 @@ URL: https://github.com/opensciencegrid/xrootd-lcmaps
 # Generated from:
 # git archive v%{version} --prefix=xrootd-lcmaps-%{version}/ | gzip -7 > ~/rpmbuild/SOURCES/xrootd-lcmaps-%{version}.tar.gz
 Source0: %{name}-%{version}.tar.gz
+Patch0: 0001-Use-single-shared-mutex-for-LCMAPS-calls-from-XrdLcm.patch
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 BuildRequires: xrootd-server-libs >= 1:4.1.0
 BuildRequires: xrootd-server-devel >= 1:4.1.0
@@ -32,6 +33,7 @@ Requires: xrootd-server >= 1:4.6.1
 
 %prep
 %setup -q
+%patch0 -p1
 
 %build
 
@@ -61,6 +63,9 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) %{_sysconfdir}/xrootd/lcmaps.cfg
 
 %changelog
+* Thu Aug 09 2018 John Thiltges <jthiltges2@unl.edu> - 1.4.0-1.20180809
+- Use single mutex for all LCMAPS calls
+
 * Tue Jan 02 2018 Brian Bockelman <bbockelm@cse.unl.edu> - 1.4.0-1
 - Allow authentication to continue even when authz fails.
 
