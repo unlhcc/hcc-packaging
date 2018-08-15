@@ -1,0 +1,27 @@
+From 3bbc6b848bb4ee55f5e0b2b0031afc9132c4ae5b Mon Sep 17 00:00:00 2001
+From: John Thiltges <jthiltges2@unl.edu>
+Date: Wed, 15 Aug 2018 13:20:00 -0500
+Subject: [PATCH] Fix segfault in checksum formatting
+
+sprintf writes three bytes with the trailing null. Depending on how the
+compiler lays out the variables, this can trigger a segfault.
+---
+ src/XrdHdfsChecksumCalc.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/XrdHdfsChecksumCalc.cc b/src/XrdHdfsChecksumCalc.cc
+index f1172eb..dfc39f1 100644
+--- a/src/XrdHdfsChecksumCalc.cc
++++ b/src/XrdHdfsChecksumCalc.cc
+@@ -81,7 +81,7 @@ human_readable_evp(const unsigned char *evp, size_t length)
+     std::string result; result.reserve(length*2);
+     for (idx = 0; idx < length; idx++)
+     {
+-        char encoded[2];
++        char encoded[3];
+         sprintf(encoded, "%02x", evp[idx]);
+         result += encoded;
+     }
+-- 
+2.17.1
+
