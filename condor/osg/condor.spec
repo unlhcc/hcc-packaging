@@ -64,7 +64,7 @@
 %define cream 1
 %endif
 
-%if 0%{?hcc}
+%if 0%{?Xhcc}
 %define blahp 0
 %define cream 0
 %if 0%{?rhel} >= 7
@@ -733,7 +733,7 @@ exit 0
 %patch8 -p1
 %endif
 
-%if 0%{?hcc}
+%if 0%{?Xhcc}
 %patch15 -p0
 %endif
 
