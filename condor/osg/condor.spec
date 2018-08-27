@@ -1,4 +1,4 @@
-%define tarball_version 8.6.6
+%define tarball_version 8.6.12
 
 # optionally define any of these, here or externally
 # % define fedora   16
@@ -6,26 +6,11 @@
 # % define uw_build 1
 # % define std_univ 1
 
-# Things for F15 or later
-%if 0%{?fedora} >= 16
-# NOTE: HTCondor+gsoap doesn't work yet on F15; ticket not yet upstream AFAIK.  BB
-%define gsoap 0
-%define aviary 1
-%ifarch %{ix86} x86_64
-# mongodb supports only x86/x86_64
-%define plumage 1
-%else
-%define plumage 0
-%endif
-%define systemd 1
-%define cgroups 1
-%else
 %define gsoap 1
 %define aviary 0
 %define plumage 0
 %define systemd 0
 %define cgroups 0
-%endif
 
 %if 0%{?rhel} >= 6
 %define cgroups 1
@@ -34,9 +19,9 @@
 %define systemd 1
 %endif
 
-# default to uw_build if neither fedora nor osg is enabled
+# default to uw_build if neither osg nor fedora is enabled
 %if %undefined uw_build
-%if 0%{?fedora} || 0%{?osg} || 0%{?hcc}
+%if 0%{?osg} || 0%{?hcc}
 %define uw_build 0
 %else
 %define uw_build 1
@@ -70,7 +55,7 @@
 %define qmf 0
 
 %if 0%{?fedora}
-%define blahp 0
+%define blahp 1
 %define cream 0
 # a handful of std universe files don't seem to get built in fedora...
 %define std_univ 0
@@ -89,6 +74,13 @@
 %endif
 %if 0%{?rhel} >= 6
 %define std_univ 0
+%endif
+%endif
+
+# Don't bother building CREAM for 32-bit RHEL7
+%ifarch %{ix86}
+%if 0%{?rhel} >= 7
+%define cream 0
 %endif
 %endif
 
@@ -121,7 +113,7 @@ Version: %{tarball_version}
 
 # Only edit the %condor_base_release to bump the rev number
 %define condor_git_base_release 0.1
-%define condor_base_release 3
+%define condor_base_release 1.20180827.1
 %if %git_build
         %define condor_release %condor_git_base_release.%{git_rev}.git
 %else
@@ -171,6 +163,7 @@ Source1: generate-tarball.sh
 %endif
 
 # % if %systemd
+Source3: osg-env.conf
 # % else
 Source4: condor.osg-sysconfig
 # % endif
@@ -193,7 +186,6 @@ Source90: find-requires.sh
 Source101: blahp-1.16.5.1.tar.gz
 Source102: boost_1_49_0.tar.gz
 Source103: c-ares-1.3.0.tar.gz
-Source104: coredumper-2011.05.24-r31.tar.gz
 Source105: drmaa-1.6.1.tar.gz
 Source106: glite-ce-cream-client-api-c-1.14.0-4.sl6.tar.gz
 Source107: glite-ce-wsdl-1.14.0-4.sl6.tar.gz
@@ -225,8 +217,7 @@ Patch8: osg_sysconfig_in_init_script.patch
 # See gt3158
 Patch15: wso2-axis2.patch
 
-Patch16: credmon_job_owner.patch
-Patch17: 0001-Use-the-job-owner-rather-than-the-uid-for-credential.patch
+Patch16: 0001-Always-initialize-class-member-data-6345.patch
 
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
@@ -234,9 +225,6 @@ BuildRequires: cmake
 BuildRequires: %_bindir/flex
 BuildRequires: %_bindir/byacc
 BuildRequires: pcre-devel
-%if 0%{?rhel} >= 7
-BuildRequires: perl-Data-Dumper
-%endif
 #BuildRequires: postgresql-devel
 BuildRequires: openssl-devel
 BuildRequires: krb5-devel
@@ -358,6 +346,8 @@ Requires: systemd
 
 BuildRequires: transfig
 BuildRequires: latex2html
+# We don't build the manual (yet)
+#BuildRequires: texlive-epstopdf
 
 Requires: /usr/sbin/sendmail
 Requires: condor-classads = %{version}-%{release}
@@ -610,6 +600,8 @@ host as the DedicatedScheduler.
 %endif
 
 
+# Temporarily turn off python for Fedora
+%if ! 0%{?fedora}
 #######################
 %package python
 Summary: Python bindings for HTCondor.
@@ -631,15 +623,17 @@ Provides: htcondor.so
 %description python
 The python bindings allow one to directly invoke the C++ implementations of
 the ClassAd library and HTCondor from python
+%endif
 
 
 #######################
 %package bosco
 Summary: BOSCO, a HTCondor overlay system for managing jobs at remote clusters
-Url: http://bosco.opensciencegrid.org
+Url: https://osg-bosco.github.io/docs/
 Group: Applications/System
 Requires: python >= 2.2
 Requires: %name = %version-%release
+Requires: rsync
 
 %description bosco
 BOSCO allows a locally-installed HTCondor to submit jobs to remote clusters,
@@ -703,7 +697,10 @@ Requires: %name-classads = %version-%release
 %if %cream
 Requires: %name-cream-gahp = %version-%release
 %endif
+# Temporarily turn off python for Fedora
+%if ! 0%{?fedora}
 Requires: %name-python = %version-%release
+%endif
 Requires: %name-bosco = %version-%release
 %if %std_univ
 Requires: %name-std-universe = %version-%release
@@ -741,7 +738,6 @@ exit 0
 %endif
 
 %patch16 -p1
-%patch17 -p1
 
 # fix errant execute permissions
 find src -perm /a+x -type f -name "*.[Cch]" -exec chmod a-x {} \;
@@ -758,11 +754,12 @@ export CMAKE_PREFIX_PATH=/usr
 # causes build issues with EL5, don't even bother building the tests.
 
 %if %uw_build
-%define condor_build_id 416237
+%define condor_build_id 446077
 
 cmake \
        -DBUILDID:STRING=%condor_build_id \
        -DUW_BUILD:BOOL=TRUE \
+       -DCONDOR_RPMBUILD:BOOL=TRUE \
 %if ! %std_univ
        -DCLIPPED:BOOL=TRUE \
 %endif
@@ -774,6 +771,11 @@ cmake \
        -DHAVE_BACKFILL:BOOL=FALSE \
        -DHAVE_BOINC:BOOL=FALSE \
        -DWITH_POSTGRESQL:BOOL=FALSE \
+%if %cream
+       -DWITH_CREAM:BOOL=TRUE \
+%else
+       -DWITH_CREAM:BOOL=FALSE \
+%endif
        -DWANT_LEASE_MANAGER:BOOL=FALSE \
        -DPLATFORM:STRING=${NMI_PLATFORM:-unknown} \
        -DCMAKE_VERBOSE_MAKEFILE=ON \
@@ -1004,10 +1006,16 @@ mkdir -p %{buildroot}%{_unitdir}
 install -m 0644 %{buildroot}/etc/examples/condor.service %{buildroot}%{_unitdir}/condor.service
 # Disabled until HTCondor security fixed.
 # install -m 0644 %{buildroot}/etc/examples/condor.socket %{buildroot}%{_unitdir}/condor.socket
+%if 0%{?osg} || 0%{?hcc}
+# Set condor service enviroment variables for LCMAPS on OSG systems
+mkdir -p %{buildroot}%{_unitdir}/condor.service.d
+install -Dp -m 0644 %{SOURCE3} %{buildroot}%{_unitdir}/condor.service.d/osg-env.conf
+%endif
 %else
 # install the lsb init script
 install -Dp -m0755 %{buildroot}/etc/examples/condor.init %{buildroot}%{_initrddir}/condor
 %if 0%{?osg} || 0%{?hcc}
+# Set condor service enviroment variables for LCMAPS on OSG systems
 install -Dp -m 0644 %{SOURCE4} %buildroot/usr/share/osg/sysconfig/condor
 %endif
 mkdir %{buildroot}%{_sysconfdir}/sysconfig/
@@ -1024,10 +1032,13 @@ install -m 0755 src/condor_scripts/CondorPersonal.pm %{buildroot}%{_datadir}/con
 install -m 0755 src/condor_scripts/CondorTest.pm %{buildroot}%{_datadir}/condor/
 install -m 0755 src/condor_scripts/CondorUtils.pm %{buildroot}%{_datadir}/condor/
 
+# Temporarily turn off python for Fedora
+%if ! 0%{?fedora}
 # Install python-binding libs
 mkdir -p %{buildroot}%{python_sitearch}
 install -m 0755 src/python-bindings/{classad,htcondor}.so %{buildroot}%{python_sitearch}
 install -m 0755 src/python-bindings/libpyclassad*.so %{buildroot}%{_libdir}
+%endif
 
 # we must place the config examples in builddir so %doc can find them
 mv %{buildroot}/etc/examples %_builddir/%name-%tarball_version
@@ -1179,6 +1190,9 @@ rm -rf %{buildroot}
 %if %systemd
 %{_tmpfilesdir}/%{name}.conf
 %{_unitdir}/condor.service
+%if 0%{?osg} || 0%{?hcc}
+%{_unitdir}/condor.service.d/osg-env.conf
+%endif
 # Disabled until HTCondor security fixed.
 # %{_unitdir}/condor.socket
 %else
@@ -1268,7 +1282,10 @@ rm -rf %{buildroot}
 %_libexecdir/condor/condor_gangliad
 %_libexecdir/condor/panda-plugin.so
 %_libexecdir/condor/pandad
+# Temporarily turn off python for Fedora
+%if ! 0%{?fedora}
 %_libexecdir/condor/libcollector_python_plugin.so
+%endif
 %_mandir/man1/condor_advertise.1.gz
 %_mandir/man1/condor_check_userlogs.1.gz
 %_mandir/man1/condor_chirp.1.gz
@@ -1650,12 +1667,15 @@ rm -rf %{buildroot}
 %config(noreplace) %_sysconfdir/condor/config.d/20dedicated_scheduler_condor.config
 %endif
 
+# Temporarily turn off python for Fedora
+%if ! 0%{?fedora}
 %files python
 %defattr(-,root,root,-)
 %_libdir/libpyclassad*.so
 %_libexecdir/condor/libclassad_python_user.so
 %{python_sitearch}/classad.so
 %{python_sitearch}/htcondor.so
+%endif
 
 %files bosco
 %defattr(-,root,root,-)
@@ -1900,6 +1920,47 @@ fi
 %endif
 
 %changelog
+* Mon Aug 27 2018 John Thiltges <jthiltges@unl.edu> - 8.6.12-1.20180827.1
+- Initialize Docker job stat variables
+
+* Wed Aug 01 2018 Tim Theisen <tim@cs.wisc.edu> - 8.6.12-1
+- Support for Debian 9, Ubuntu 16, and Ubuntu 18
+- Fixed a memory leak that occurred when SSL authentication fails
+- Fixed a bug where invalid transform REQUIREMENTS caused a Job to match
+- Fixed a bug to allow a queue super user to edit protected attributes
+- Fixed a problem setting the job environment in the Singularity container
+- Fixed several other minor problems
+
+* Thu May 10 2018 Tim Theisen <tim@cs.wisc.edu> - 8.6.11-1
+- Can now do an interactive submit of a Singularity job
+- Shared port daemon is more resilient when starved for TCP ports
+- The Windows installer configures the environment for the Python bindings
+- Fixed several other minor problems
+
+* Tue Mar 13 2018 Tim Theisen <tim@cs.wisc.edu> - 8.6.10-1
+- Fixed a problem where condor_preen would crash on an active submit node
+- Improved systemd configuration to clean up processes if the master crashes
+- Fixed several other minor problems
+
+* Thu Jan 04 2018 Tim Theisen <tim@cs.wisc.edu> - 8.6.9-1
+- Fixed a bug where some Accounting Groups could get too much surplus quota
+- Fixed a Python binding bug where some queries could corrupt memory
+- Fixed a problem where preen could block the schedd for a long time
+- Fixed a bug in Windows where the job sandbox would not be cleaned up
+- Fixed problems with the interaction between the master and systemd
+- Fixed a bug where MAX_JOBS_SUBMITTED could be permanently reduced
+- Fixed problems with very large disk requests
+
+* Tue Nov 14 2017 Tim Theisen <tim@cs.wisc.edu> - 8.6.8-1
+- Fixed an issue validating VOMS proxies
+
+* Tue Oct 31 2017 Tim Theisen <tim@cs.wisc.edu> - 8.6.7-1
+- Fixed a bug where memory limits might not be updated in cgroups
+- Add SELinux type enforcement rules to allow condor_ssh_to_job to work
+- Updated systemd configuration to shutdown HTCondor in an orderly fashion
+- The curl_plugin utility can now do HTTPS transfers
+- Specifying environment variables now works with the Python Submit class
+
 * Tue Sep 12 2017 Tim Theisen <tim@cs.wisc.edu> - 8.6.6-1
 - HTCondor daemons no longer crash on reconfig if syslog is used for logging
 - HTCondor daemons now reliably leave a core file when killed by a signal

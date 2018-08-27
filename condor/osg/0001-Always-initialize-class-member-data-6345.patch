@@ -1,0 +1,25 @@
+From 4a8e6f68f044665a5aa8279a5c4bd9995f7ebf08 Mon Sep 17 00:00:00 2001
+From: Greg Thain <gthain@cs.wisc.edu>
+Date: Thu, 5 Oct 2017 10:15:05 -0500
+Subject: [PATCH] Always initialize class member data #6345
+
+---
+ src/condor_starter.V6.1/docker_proc.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/condor_starter.V6.1/docker_proc.cpp b/src/condor_starter.V6.1/docker_proc.cpp
+index bf31f40c89..0f3d7e31bb 100644
+--- a/src/condor_starter.V6.1/docker_proc.cpp
++++ b/src/condor_starter.V6.1/docker_proc.cpp
+@@ -79,7 +79,7 @@ static bool handleFTL(int error) {
+ // the full container ID as (part of) the cgroup identifier(s).
+ //
+ 
+-DockerProc::DockerProc( ClassAd * jobAd ) : VanillaProc( jobAd ), updateTid(-1) { }
++DockerProc::DockerProc( ClassAd * jobAd ) : VanillaProc( jobAd ), updateTid(-1), memUsage(0), netIn(0), netOut(0), userCpu(0), sysCpu(0) { }
+ 
+ DockerProc::~DockerProc() { }
+ 
+-- 
+2.17.1
+
