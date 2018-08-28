@@ -2,7 +2,7 @@
 
 # optionally define any of these, here or externally
 # % define fedora   16
-% define osg      1
+%define osg      1
 # % define uw_build 1
 # % define std_univ 1
 
