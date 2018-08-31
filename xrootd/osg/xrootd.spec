@@ -44,7 +44,7 @@
 Name:      xrootd
 Epoch:     1
 Version:   4.8.5
-Release:   0.experimental.491807.b490c5d6%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
+Release:   0.experimental.491808.b490c5d6%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
 Summary:   Extended ROOT file server
 Group:     System Environment/Daemons
 License:   LGPLv3+
@@ -61,6 +61,7 @@ Source1:   xrootd-3.3.6.tar.gz
 
 Patch0: invoke_callback.patch
 Patch1: connection_header.patch
+Patch2: reset_filesize.patch
 
 BuildRoot: %{_tmppath}/%{name}-root
 
@@ -400,6 +401,7 @@ This package contains compatibility binaries for xrootd 3 servers.
 pushd xrootd
 %patch0 -p1
 %patch1 -p1
+%patch2 -p1
 popd
 
 %if %{?_with_compat:1}%{!?_with_compat:0}

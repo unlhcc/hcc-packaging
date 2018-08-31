@@ -1,0 +1,37 @@
+From 004d566a4636d073a217245a0eadca09f42b2b97 Mon Sep 17 00:00:00 2001
+From: Brian Bockelman <bbockelm@cse.unl.edu>
+Date: Fri, 31 Aug 2018 08:36:10 -0500
+Subject: [PATCH] [XrdHttp] Reset filesize when the XrdHttpReq object is used.
+
+The `filesize` was not being reset between requests.  If it is non-zero,
+the `XrdHttpReq` object uses the size when parsing header to potentially
+reduce the total read size (preventing it from going past the EOF).
+
+Unfortunately, since the `filesize` was set to the size of the *previous*
+file transfer, this could cause the total response size to be less than
+the request, resulting in a shorter-than-expected response to the client.
+---
+ src/XrdHttp/XrdHttpReq.cc | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/src/XrdHttp/XrdHttpReq.cc b/src/XrdHttp/XrdHttpReq.cc
+index 1683c2c3b14..6bb3d93707a 100644
+--- a/src/XrdHttp/XrdHttpReq.cc
++++ b/src/XrdHttp/XrdHttpReq.cc
+@@ -2456,8 +2456,6 @@ void XrdHttpReq::reset() {
+   //                bool final //!< true -> final result
+ 
+ 
+-  keepalive = false;
+-  length = 0;
+   //xmlbody = 0;
+   depth = 0;
+   xrdresp = kXR_noResponsesYet;
+@@ -2476,6 +2474,7 @@ void XrdHttpReq::reset() {
+   headerok = false;
+   keepalive = true;
+   length = 0;
++  filesize = 0;
+   depth = 0;
+   sendcontinue = false;
+ 
