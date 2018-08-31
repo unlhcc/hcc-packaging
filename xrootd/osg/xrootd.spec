@@ -44,7 +44,7 @@
 Name:      xrootd
 Epoch:     1
 Version:   4.8.5
-Release:   0.experimental.491808.b490c5d6%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
+Release:   0.experimental.491809.b490c5d6%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
 Summary:   Extended ROOT file server
 Group:     System Environment/Daemons
 License:   LGPLv3+
@@ -210,6 +210,8 @@ Summary:	Libraries used by xrootd servers
 Group:		System Environment/Libraries
 Requires:	%{name}-libs%{?_isa} = %{epoch}:%{version}-%{release}
 Requires:	%{name}-client-libs%{?_isa} = %{epoch}:%{version}-%{release}
+Obsoletes:      xrootd-macaroons
+Obsoletes:      xrootd-tpc
 
 %description server-libs
 This package contains libraries used by xrootd servers.
