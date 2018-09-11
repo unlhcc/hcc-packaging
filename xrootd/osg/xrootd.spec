@@ -44,7 +44,7 @@
 Name:      xrootd
 Epoch:     1
 Version:   4.8.5
-Release:   0.experimental.491810.b490c5d6%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}.1
+Release:   0.experimental.491811.b490c5d6%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
 Summary:   Extended ROOT file server
 Group:     System Environment/Daemons
 License:   LGPLv3+
@@ -945,6 +945,9 @@ fi
 # Changelog
 #-------------------------------------------------------------------------------
 %changelog
+* Tue Sep 11 2018 Brian Bockelman <bbockelm@cse.unl.edu> - 1:4.8.5-0.experimental.491811.b490c5d6
+- Fix release version number.
+
 * Tue Sep 11 2018 Brian Bockelman <bbockelm@cse.unl.edu> - 1:4.8.5-0.experimental.491810.b490c5d6.1
 - Fix XrdHttp checksums.
 
