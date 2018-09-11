@@ -44,7 +44,7 @@
 Name:      xrootd
 Epoch:     1
 Version:   4.8.5
-Release:   0.experimental.491810.b490c5d6%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
+Release:   0.experimental.491810.b490c5d6%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}.1
 Summary:   Extended ROOT file server
 Group:     System Environment/Daemons
 License:   LGPLv3+
@@ -63,6 +63,7 @@ Patch0: invoke_callback.patch
 Patch1: connection_header.patch
 Patch2: reset_filesize.patch
 Patch3: generate_fserror_on_close.patch
+Patch4: fix_checksums.patch
 
 BuildRoot: %{_tmppath}/%{name}-root
 
@@ -406,6 +407,7 @@ pushd xrootd
 %patch1 -p1
 %patch2 -p1
 %patch3 -p1
+%patch4 -p1
 popd
 
 %if %{?_with_compat:1}%{!?_with_compat:0}
@@ -943,6 +945,9 @@ fi
 # Changelog
 #-------------------------------------------------------------------------------
 %changelog
+* Tue Sep 11 2018 Brian Bockelman <bbockelm@cse.unl.edu> - 1:4.8.5-0.experimental.491810.b490c5d6.1
+- Fix XrdHttp checksums.
+
 * Tue May 08 2018 Michal Simon <michal.simon@cern.ch> 
 - Make python3 sub-package optional
 
