@@ -1,0 +1,691 @@
+From 3e6bb63e5c576f0426db127ec118e4a780e829f4 Mon Sep 17 00:00:00 2001
+From: John Thiltges <jthiltges2@unl.edu>
+Date: Fri, 28 Sep 2018 11:19:58 -0500
+Subject: [PATCH 1/6] Remove systemctl from stashcache monitoring script and
+ add one-shot mode
+
+- Remove update of local collector
+- Switch to python logging
+- Save and restore euid, as calling Condor's advertise changes it to the condor user
+---
+ src/stashcache | 225 ++++++++++++-------------------------------------
+ 1 file changed, 56 insertions(+), 169 deletions(-)
+ mode change 100644 => 100755 src/stashcache
+
+diff --git a/src/stashcache b/src/stashcache
+old mode 100644
+new mode 100755
+index 62ad2a4..b193f10
+--- a/src/stashcache
++++ b/src/stashcache
+@@ -1,198 +1,85 @@
+ #!/bin/env python
+ '''
+-Shim script to manage XRootD server under condor_master
++Collect XRootD stats and report to HTCondor collector
+ '''
+ 
++# Viewing stats in collector:
++# condor_status -pool collector1.opensciencegrid.org:9619 -any xrootd@hcc-stash.unl.edu -l
++
++import argparse
++import logging
+ import os
+-import re
+ import sys
+-import errno
+ import socket
+-import signal
+-import Queue
+-import threading
+ import time
+-import traceback
+ 
+ import htcondor
+ import xrootd_cache_stats
+ 
+-from subprocess import Popen, PIPE
+-
+-_exception_queue = Queue.Queue(0)
+-_accepted_signals = {signal.SIGHUP:'restart',
+-                     signal.SIGQUIT:'stop',
+-                     signal.SIGTERM:'stop'}
+-
+-class CondorException(Exception):
+-    pass
+-
+-class XrootdException(Exception):
+-    pass
+-
+-class HeartBeatThread(threading.Thread):
+-    '''Thread to send heartbeats and cache ads to the master'''
+-    def __init__(self, url, exception_queue):
+-        self.url = url
+-        self.exceptions = exception_queue
+-        threading.Thread.__init__(self)
+-        self.setDaemon(True)
+-
+-    def run(self):
+-        try:
+-            local_coll = htcondor.Collector(self.url)
+-            try:
+-                central_coll_url = htcondor.param['OSG_COLLECTOR_HOST']
+-            except KeyError:
+-                central_coll_url = 'collector1.opensciencegrid.org:9619,collector2.opensciencegrid.org:9619'
+-            htcondor.log(htcondor.LogLevel.FullDebug, 'Using %s as the central collector' % central_coll_url)
+-            central_coll = htcondor.Collector(central_coll_url)
+-
+-            xrootd_addr = 'root://' + self.url
+-            while True:
+-                local_master = None
+-                while not local_master:
+-                    try:
+-                        local_master = local_coll.locate(htcondor.DaemonTypes.Master)
+-                    except ValueError: # Master has not advertised to the collector yet
+-                        pass
+-                    except IOError: # Failed communication with collector
+-                        raise CondorException('Could not locate Collector at %s' % self.url)
+-
+-                local_master['STASHCACHE_DaemonVersion'] = ##VERSION##
+-                cache_ad = xrootd_cache_stats.collect_cache_stats(xrootd_addr, '/stash')
+-                if cache_ad['ping_response_status'] == 'ok':
+-                    htcondor.log(htcondor.LogLevel.FullDebug, 'XRootD server (%s) status: OK' % xrootd_addr)
+-                    try:
+-                        htcondor.send_alive(local_master)
+-                    except RuntimeError:
+-                        raise CondorException('Failed to deliver keepalive message to condor_master at %s'
+-                                              % self.url)
+-                    # ads need to be updated every 15 min while heartbeats should be done every 30 min
+-                    for _ in range(2):
+-                        for collector in local_coll, central_coll:
+-                            pool = collector.query(htcondor.AdTypes.Collector)[0]['Machine']
+-                            htcondor.log(htcondor.LogLevel.Always, 'Advertising StashCache ads to %s' % pool)
+-                            for args in [([local_master], 'UPDATE_MASTER_AD'), ([cache_ad], 'UPDATE_STARTD_AD')]:
+-                                collector.advertise(*args)
+-                        time.sleep(900)
+-                else:
+-                    raise XrootdException('No heartbeat from XRootD server')
+-        except Exception:
+-            # Exceptions don't rise to the main thread so we have to pass them via queue and SIGALARM
+-            error = sys.exc_info()
+-            self.exceptions.put(error)
+-            signal.alarm(1)
+-            sys.exit(1)
+-
+-def raise_heartbeat_exception(signum, frame):
+-    '''Raise exception from heartbeat thread'''
+-    exc_type, exc_value, exc_tb = _exception_queue.get()
+-    kill_xrootd()
+-    if exc_type in [XrootdException, CondorException, RuntimeError]:
+-        htcondor.log(htcondor.LogLevel.Error, 'ERROR: ' + str(exc_value))
+-    else:
+-        exc_str = traceback.format_exception(exc_type, exc_value, exc_tb)
+-        htcondor.log(htcondor.LogLevel.Error, ''.join(exc_str))
+-    htcondor.log(htcondor.LogLevel.Always, 'Stopping StashCache daemon')
+-    sys.exit(1)
+-
+-def manage_xrootd(signum, frame):
+-    '''Signal handler for the XRootD service'''
+-    command = _accepted_signals[signum]
+-    htcondor.log(htcondor.LogLevel.Always,
+-                 "Received signal %s: Running '%s' on the XRootD server " % (signum, command))
+-
+-    rc, _, _ = xrootd_service_command(command)
+-    if rc != 0:
+-        kill_xrootd()
+-        # Restart service if user requested it
+-        if signum == signal.SIGHUP:
+-            start_xrootd()
+-    if signum == signal.SIGQUIT or signum == signal.SIGTERM:
+-        sys.exit(0)
+-
+-def start_xrootd():
+-    '''Starts the XRootD init service'''
+-    rc, stdout, _ = xrootd_service_command('start')
+-    if rc != 0:
+-        htcondor.log(htcondor.LogLevel.Error, 'ERROR: Could not start XRootD service: %s' % stdout)
+-    else:
+-        try:
+-            pid = get_xrootd_pid()
+-        except AttributeError:
+-            pid = 'unknown'
+-        htcondor.log(htcondor.LogLevel.Always, 'XRootD service running (PID: %s)' % pid)
+-
+-def kill_xrootd():
+-    '''Sends SIGKILL to an unresponsive XRootD service'''
+-    try:
+-        pid = get_xrootd_pid()
+-        os.kill(int(pid), signal.SIGKILL)
+-    except (AttributeError, OSError):
+-        pass # xrootd already dead
+-
+-def get_xrootd_pid():
+-    '''Finds the xrootd pid via `service xrootd status`'''
+-    _, stdout, _ = xrootd_service_command('status')
++def heart_beat(hostname, cache_path='/stash', one_shot=False):
++    '''Send heartbeats and cache ads to the condor_master'''
+     try:
+-        return re.search(r'(?:pid|PID)[:\s\(]*(\d+)', stdout).group(1)
+-    except AttributeError:
+-        htcondor.log(htcondor.LogLevel.Error, 'ERROR: Could not find XRootD service PID')
+-        raise
++        central_coll_url = htcondor.param['OSG_COLLECTOR_HOST']
++    except KeyError:
++        central_coll_url = 'collector1.opensciencegrid.org:9619,collector2.opensciencegrid.org:9619'
++    logging.debug('Using %s as the central collector', central_coll_url)
++    central_coll = htcondor.Collector(central_coll_url)
+ 
+-def xrootd_service_command(cmd):
+-    '''Accepts an init command and passes it to the XRootD init script'''
+-    service_name = 'xrootd'
+-    try:
+-        # To support systemd, we need to specify which configuration xrootd should use
+-        rc, _, _ = run_command(['systemctl', '--version'])
+-        for config in ('cache', 'origin'):
+-            if os.path.exists('/etc/xrootd/xrootd-stashcache-%s-server.cfg' % config):
+-                service_name = 'xrootd@stashcache-%s-server' % config
+-                break
+-        if service_name is 'xrootd':
+-            htcondor.log(htcondor.LogLevel.Error, 'ERROR: Could not %s XRootD service + ' \
+-                         'due to missing cache and origin configurations.' % cmd)
+-            sys.exit(1)
+-    except OSError, e:
+-        # systemctl isn't installed, assume sysvinit
+-        if e.errno == errno.ENOENT:
+-            pass
++    xrootd_url = 'root://' + hostname
++    while True:
++        logging.debug('Collecting cache stats from %s', cache_path)
++        cache_ad = xrootd_cache_stats.collect_cache_stats(xrootd_url, cache_path)
++        cache_ad['STASHCACHE_DaemonVersion'] = '##VERSION##'
++        if cache_ad['ping_response_status'] == 'ok':
++            logging.debug('XRootD server (%s) status: OK', xrootd_url)
++            pool = central_coll.query(htcondor.AdTypes.Collector)[0]['Machine']
++            logging.info('Advertising StashCache ads to %s', pool)
++            # Save and restore euid, as advertise() changes it
++            old_uid = os.geteuid()
++            central_coll.advertise([cache_ad], 'UPDATE_STARTD_AD')
++            os.seteuid(old_uid)
+         else:
+-            htcondor.log(htcondor.LogLevel.Error, 'ERROR: Could not determine how to %s the XRootD service' % cmd)
+-            raise
+-
+-    rc, stdout, stderr = run_command(['service', service_name, cmd])
+-    return rc, stdout, stderr
++            logging.warning('No heartbeat from XRootD server')
+ 
+-def run_command(command):
+-    p = Popen(command, stdout=PIPE, stderr=PIPE)
+-    stdout, stderr = p.communicate()
+-    return p.returncode, stdout, stderr
++        if one_shot:
++            break
++        else:
++            # ads need to be updated every 15 min
++            logging.debug('Sleeping until next ad refresh')
++            time.sleep(900)
+ 
+ def main():
+-    htcondor.enable_log()
++    '''Main function'''
++    args = parse_args()
++
++    # Enable logging
++    log_level = max(3 - args.verbose_count, 0) * 10
++    log_format = '%(levelname)s: %(message)s'
++    logging.basicConfig(level=log_level, format=log_format)
+ 
+     # Check for existence of host cert/key pair
+     for pki in 'cert', 'key':
+         pki_path = '/etc/grid-security/host%s.pem' % pki
+         if not os.path.exists(pki_path):
+-            htcondor.log(htcondor.LogLevel.Error, 'ERROR: Could not find host %s at %s' % (pki, pki_path))
++            logging.error('Could not find host %s at %s', pki, pki_path)
+             sys.exit(1)
+ 
+-    # Start XRootD and monitor the service
+-    start_xrootd()
++    # Monitor the xrootd service
+     hostname = socket.getfqdn()
+-    heartbeat = HeartBeatThread(hostname, _exception_queue)
+-    heartbeat.start()
+-
+-    # Accept HTCondor daemon signals
+-    for signum in _accepted_signals.iterkeys():
+-        signal.signal(signum, manage_xrootd)
+-    signal.signal(signal.SIGALRM, raise_heartbeat_exception)
+-    while True:
+-        signal.pause()
++    heart_beat(hostname, one_shot=args.one_shot, cache_path=args.cache_path)
++
++def parse_args():
++    '''Parse CLI options'''
++    parser = argparse.ArgumentParser()
++
++    parser.add_argument('--one-shot', default=False, action='store_true',
++                        help='Run once, rather than persistently')
++    parser.add_argument('--cache-path', default='/stash',
++                        help='Path to the local XRootD stashcache directory')
++    parser.add_argument('-v', '--verbose', dest='verbose_count',
++                        action='count', default=0,
++                        help='Increase log verbosity (repeatable)')
++    return parser.parse_args()
+ 
+ if __name__ == '__main__':
+     main()
+-- 
+2.17.1
+
+
+From 80f901026ac6a5fc5309d9b4d3b10f6f50bc654e Mon Sep 17 00:00:00 2001
+From: John Thiltges <jthiltges2@unl.edu>
+Date: Mon, 1 Oct 2018 12:30:49 -0500
+Subject: [PATCH 2/6] Add systemd unit to periodically run StashCache stats
+ reporting script
+
+- Add systemd service and timer
+- Remove condor service configuration
+---
+ Makefile                   |  8 ++------
+ configs/01-stashcache.conf |  4 ----
+ configs/stashcache.service | 11 +++++++++++
+ configs/stashcache.timer   |  9 +++++++++
+ rpm/StashCache-Daemon.spec | 10 +++++++++-
+ 5 files changed, 31 insertions(+), 11 deletions(-)
+ delete mode 100644 configs/01-stashcache.conf
+ create mode 100644 configs/stashcache.service
+ create mode 100644 configs/stashcache.timer
+
+diff --git a/Makefile b/Makefile
+index b8acec1..f8a1607 100644
+--- a/Makefile
++++ b/Makefile
+@@ -15,15 +15,13 @@ VERSION := 0.9
+ 
+ SBIN_FILES := src/stashcache
+ INSTALL_SBIN_DIR := usr/sbin
+-CONDOR_CONFIG := configs/01-stashcache.conf
+ XROOTD_CONFIG := configs/Authfile-auth configs/Authfile-noauth configs/stashcache-robots.txt configs/xrootd-stashcache-cache-server.cfg configs/xrootd-stashcache-origin-server.cfg
+-SYSTEMD_UNITS := configs/xrootd-renew-proxy.service configs/xrootd-renew-proxy.timer
+-INSTALL_CONDOR_DIR := etc/condor/config.d
++SYSTEMD_UNITS := configs/xrootd-renew-proxy.service configs/xrootd-renew-proxy.timer configs/stashcache.service configs/stashcache.timer
+ INSTALL_XROOTD_DIR := etc/xrootd
+ INSTALL_SYSTEMD_UNITDIR := usr/lib/systemd/system
+ PYTHON_LIB := src/xrootd_cache_stats.py
+ 
+-DIST_FILES := $(SBIN_FILES) $(CONDOR_CONFIG) $(PYTHON_LIB) Makefile
++DIST_FILES := $(SBIN_FILES) $(PYTHON_LIB) Makefile
+ 
+ 
+ # ------------------------------------------------------------------------------
+@@ -60,8 +58,6 @@ install:
+ 	mkdir -p $(DESTDIR)/$(INSTALL_SBIN_DIR)
+ 	install -p -m 0755 $(SBIN_FILES) $(DESTDIR)/$(INSTALL_SBIN_DIR)
+ 	sed -i -e 's/##VERSION##/$(VERSION)/g' $(DESTDIR)/$(INSTALL_SBIN_DIR)/stashcache
+-	mkdir -p $(DESTDIR)/$(INSTALL_CONDOR_DIR)
+-	install -p -m 0644 $(CONDOR_CONFIG) $(DESTDIR)/$(INSTALL_CONDOR_DIR)
+ 	mkdir -p $(DESTDIR)/$(INSTALL_PYTHON_DIR)
+ 	install -p -m 0644 $(PYTHON_LIB) $(DESTDIR)/$(INSTALL_PYTHON_DIR)
+ 	mkdir -p $(DESTDIR)/$(INSTALL_XROOTD_DIR)
+diff --git a/configs/01-stashcache.conf b/configs/01-stashcache.conf
+deleted file mode 100644
+index 097505e..0000000
+--- a/configs/01-stashcache.conf
++++ /dev/null
+@@ -1,4 +0,0 @@
+-STASHCACHE=/usr/sbin/stashcache
+-DAEMON_LIST=MASTER, COLLECTOR, STASHCACHE
+-TOOL_LOG=/var/log/condor/StashcacheLog
+-TOOL_DEBUG=D_ALWAYS D_ERROR
+diff --git a/configs/stashcache.service b/configs/stashcache.service
+new file mode 100644
+index 0000000..f28ef12
+--- /dev/null
++++ b/configs/stashcache.service
+@@ -0,0 +1,11 @@
++[Unit]
++Description=Report StashCache usage stats
++
++[Service]
++User=root
++Group=root
++Type=oneshot
++ExecStart=/usr/sbin/stashcache --one-shot
++
++[Install]
++WantedBy=multi-user.target
+diff --git a/configs/stashcache.timer b/configs/stashcache.timer
+new file mode 100644
+index 0000000..c2ef5f3
+--- /dev/null
++++ b/configs/stashcache.timer
+@@ -0,0 +1,9 @@
++[Unit]
++Description=Report StashCache usage stats every 15 minutes
++
++[Timer]
++OnUnitInactiveSec=15m
++Unit=stashcache.service
++
++[Install]
++WantedBy=multi-user.target
+diff --git a/rpm/StashCache-Daemon.spec b/rpm/StashCache-Daemon.spec
+index 3b9da5f..921cf97 100644
+--- a/rpm/StashCache-Daemon.spec
++++ b/rpm/StashCache-Daemon.spec
+@@ -28,6 +28,13 @@ Requires: fetch-crl
+ %description daemon
+ %{summary}
+ 
++%post daemon
++%systemd_post stashcache.service stashcache.timer
++%preun daemon
++%systemd_preun stashcache.service stashcache.timer
++%postun daemon
++%systemd_postun_with_restart stashcache.service stashcache.timer
++
+ ########################################
+ %package origin-server
+ Group: Grid
+@@ -96,8 +103,9 @@ mkdir -p %{buildroot}%{_sysconfdir}/grid-security/xrd
+ 
+ %files daemon
+ %{_sbindir}/stashcache
+-%{_sysconfdir}/condor/config.d/01-stashcache.conf
+ %{python_sitelib}/xrootd_cache_stats.py*
++%{_unitdir}/stashcache.service
++%{_unitdir}/stashcache.timer
+ 
+ %files origin-server
+ %config(noreplace) %{_sysconfdir}/xrootd/xrootd-stashcache-origin-server.cfg
+-- 
+2.17.1
+
+
+From fced0f847ba6ee232839c195715244f208d46aed Mon Sep 17 00:00:00 2001
+From: John Thiltges <jthiltges2@unl.edu>
+Date: Mon, 1 Oct 2018 14:41:47 -0500
+Subject: [PATCH 3/6] Rename systemd services from stashcache to
+ stashcache-reporter
+
+---
+ Makefile                            |  2 +-
+ configs/stashcache-reporter.service | 11 +++++++++++
+ configs/stashcache-reporter.timer   |  9 +++++++++
+ configs/stashcache.service          | 11 -----------
+ configs/stashcache.timer            |  9 ---------
+ rpm/StashCache-Daemon.spec          | 10 +++++-----
+ 6 files changed, 26 insertions(+), 26 deletions(-)
+ create mode 100644 configs/stashcache-reporter.service
+ create mode 100644 configs/stashcache-reporter.timer
+ delete mode 100644 configs/stashcache.service
+ delete mode 100644 configs/stashcache.timer
+
+diff --git a/Makefile b/Makefile
+index f8a1607..7c20ddb 100644
+--- a/Makefile
++++ b/Makefile
+@@ -16,7 +16,7 @@ VERSION := 0.9
+ SBIN_FILES := src/stashcache
+ INSTALL_SBIN_DIR := usr/sbin
+ XROOTD_CONFIG := configs/Authfile-auth configs/Authfile-noauth configs/stashcache-robots.txt configs/xrootd-stashcache-cache-server.cfg configs/xrootd-stashcache-origin-server.cfg
+-SYSTEMD_UNITS := configs/xrootd-renew-proxy.service configs/xrootd-renew-proxy.timer configs/stashcache.service configs/stashcache.timer
++SYSTEMD_UNITS := configs/xrootd-renew-proxy.service configs/xrootd-renew-proxy.timer configs/stashcache-reporter.service configs/stashcache-reporter.timer
+ INSTALL_XROOTD_DIR := etc/xrootd
+ INSTALL_SYSTEMD_UNITDIR := usr/lib/systemd/system
+ PYTHON_LIB := src/xrootd_cache_stats.py
+diff --git a/configs/stashcache-reporter.service b/configs/stashcache-reporter.service
+new file mode 100644
+index 0000000..f28ef12
+--- /dev/null
++++ b/configs/stashcache-reporter.service
+@@ -0,0 +1,11 @@
++[Unit]
++Description=Report StashCache usage stats
++
++[Service]
++User=root
++Group=root
++Type=oneshot
++ExecStart=/usr/sbin/stashcache --one-shot
++
++[Install]
++WantedBy=multi-user.target
+diff --git a/configs/stashcache-reporter.timer b/configs/stashcache-reporter.timer
+new file mode 100644
+index 0000000..7111f2e
+--- /dev/null
++++ b/configs/stashcache-reporter.timer
+@@ -0,0 +1,9 @@
++[Unit]
++Description=Report StashCache usage stats every 15 minutes
++
++[Timer]
++OnUnitInactiveSec=15m
++Unit=stashcache-reporter.service
++
++[Install]
++WantedBy=multi-user.target
+diff --git a/configs/stashcache.service b/configs/stashcache.service
+deleted file mode 100644
+index f28ef12..0000000
+--- a/configs/stashcache.service
++++ /dev/null
+@@ -1,11 +0,0 @@
+-[Unit]
+-Description=Report StashCache usage stats
+-
+-[Service]
+-User=root
+-Group=root
+-Type=oneshot
+-ExecStart=/usr/sbin/stashcache --one-shot
+-
+-[Install]
+-WantedBy=multi-user.target
+diff --git a/configs/stashcache.timer b/configs/stashcache.timer
+deleted file mode 100644
+index c2ef5f3..0000000
+--- a/configs/stashcache.timer
++++ /dev/null
+@@ -1,9 +0,0 @@
+-[Unit]
+-Description=Report StashCache usage stats every 15 minutes
+-
+-[Timer]
+-OnUnitInactiveSec=15m
+-Unit=stashcache.service
+-
+-[Install]
+-WantedBy=multi-user.target
+diff --git a/rpm/StashCache-Daemon.spec b/rpm/StashCache-Daemon.spec
+index 921cf97..80814e2 100644
+--- a/rpm/StashCache-Daemon.spec
++++ b/rpm/StashCache-Daemon.spec
+@@ -29,11 +29,11 @@ Requires: fetch-crl
+ %{summary}
+ 
+ %post daemon
+-%systemd_post stashcache.service stashcache.timer
++%systemd_post stashcache-reporter.service stashcache-reporter.timer
+ %preun daemon
+-%systemd_preun stashcache.service stashcache.timer
++%systemd_preun stashcache-reporter.service stashcache-reporter.timer
+ %postun daemon
+-%systemd_postun_with_restart stashcache.service stashcache.timer
++%systemd_postun_with_restart stashcache-reporter.service stashcache-reporter.timer
+ 
+ ########################################
+ %package origin-server
+@@ -104,8 +104,8 @@ mkdir -p %{buildroot}%{_sysconfdir}/grid-security/xrd
+ %files daemon
+ %{_sbindir}/stashcache
+ %{python_sitelib}/xrootd_cache_stats.py*
+-%{_unitdir}/stashcache.service
+-%{_unitdir}/stashcache.timer
++%{_unitdir}/stashcache-reporter.service
++%{_unitdir}/stashcache-reporter.timer
+ 
+ %files origin-server
+ %config(noreplace) %{_sysconfdir}/xrootd/xrootd-stashcache-origin-server.cfg
+-- 
+2.17.1
+
+
+From 2a00f207d9949811a0b8e4aa1fb66e16dcb20fef Mon Sep 17 00:00:00 2001
+From: John Thiltges <jthiltges2@unl.edu>
+Date: Mon, 1 Oct 2018 16:48:29 -0500
+Subject: [PATCH 4/6] Improve the scheduling of stats reporting - Confirmed
+ that ads expire after 15 minutes - Use the systemd random delay to run the
+ service every 10-13 minutes - Add a similar delay to python, allowing for the
+ time taken to collect stats
+
+---
+ configs/stashcache-reporter.timer |  5 +++--
+ src/stashcache                    | 13 ++++++++++---
+ 2 files changed, 13 insertions(+), 5 deletions(-)
+
+diff --git a/configs/stashcache-reporter.timer b/configs/stashcache-reporter.timer
+index 7111f2e..f85b6a2 100644
+--- a/configs/stashcache-reporter.timer
++++ b/configs/stashcache-reporter.timer
+@@ -1,8 +1,9 @@
+ [Unit]
+-Description=Report StashCache usage stats every 15 minutes
++Description=Report StashCache usage stats periodically
+ 
+ [Timer]
+-OnUnitInactiveSec=15m
++OnUnitInactiveSec=10m
++RandomizedDelaySec=3m
+ Unit=stashcache-reporter.service
+ 
+ [Install]
+diff --git a/src/stashcache b/src/stashcache
+index b193f10..ef7cc3a 100755
+--- a/src/stashcache
++++ b/src/stashcache
+@@ -9,6 +9,7 @@ Collect XRootD stats and report to HTCondor collector
+ import argparse
+ import logging
+ import os
++import random
+ import sys
+ import socket
+ import time
+@@ -16,6 +17,9 @@ import time
+ import htcondor
+ import xrootd_cache_stats
+ 
++# Ad expires from collector after 15 minutes
++REFRESH_INTERVAL = 600 + random.randrange(180) # seconds
++
+ def heart_beat(hostname, cache_path='/stash', one_shot=False):
+     '''Send heartbeats and cache ads to the condor_master'''
+     try:
+@@ -27,6 +31,7 @@ def heart_beat(hostname, cache_path='/stash', one_shot=False):
+ 
+     xrootd_url = 'root://' + hostname
+     while True:
++        start_time = time.time()
+         logging.debug('Collecting cache stats from %s', cache_path)
+         cache_ad = xrootd_cache_stats.collect_cache_stats(xrootd_url, cache_path)
+         cache_ad['STASHCACHE_DaemonVersion'] = '##VERSION##'
+@@ -44,9 +49,11 @@ def heart_beat(hostname, cache_path='/stash', one_shot=False):
+         if one_shot:
+             break
+         else:
+-            # ads need to be updated every 15 min
+-            logging.debug('Sleeping until next ad refresh')
+-            time.sleep(900)
++            end_time = time.time()
++            logging.debug('Cache stat collection took %s seconds', end_time - start_time)
++            sleep_time = max(0, REFRESH_INTERVAL - (end_time - start_time))
++            logging.debug('Sleeping %d seconds before ad refresh', sleep_time)
++            time.sleep(sleep_time)
+ 
+ def main():
+     '''Main function'''
+-- 
+2.17.1
+
+
+From 78042c06e607404ca7fdbda564637fc07fd04f37 Mon Sep 17 00:00:00 2001
+From: John Thiltges <jthiltges2@unl.edu>
+Date: Tue, 2 Oct 2018 11:27:36 -0500
+Subject: [PATCH 5/6] Try to make authfiles consistent and add descriptive
+ comments
+
+---
+ configs/Authfile-auth   | 19 +++++++++++++++++--
+ configs/Authfile-noauth |  8 +++++++-
+ 2 files changed, 24 insertions(+), 3 deletions(-)
+
+diff --git a/configs/Authfile-auth b/configs/Authfile-auth
+index 0cdbf10..cf152d4 100644
+--- a/configs/Authfile-auth
++++ b/configs/Authfile-auth
+@@ -1,2 +1,17 @@
+-g /osg/ligo /user/ligo r
+-u ligo /user/ligo lr / rl
++# Authfile for authenticated StashCache access
++##############################################
++
++# Users in VO /osg/ligo are granted read/lookup for path /user/ligo
++# Users in VO /osg/ligo are granted read/lookup for path /
++g /osg/ligo /user/ligo rl \
++            /          rl
++
++# User ligo is granted read/lookup for path /user/ligo
++# User ligo is granted read/lookup for path /
++u ligo /user/ligo lr \
++       /          lr
++
++# All users are denied  read/lookup for path /user/ligo
++# All users are granted read/lookup for path /
++u * /user/ligo -rl \
++    /           rl
+diff --git a/configs/Authfile-noauth b/configs/Authfile-noauth
+index e03d760..35db692 100644
+--- a/configs/Authfile-noauth
++++ b/configs/Authfile-noauth
+@@ -1 +1,7 @@
+-u * /user/ligo -rl / rl
++# Authfile for unauthenticated StashCache access
++################################################
++
++# All users are denied  read/lookup for path /user/ligo
++# All users are granted read/lookup for path /
++u * /user/ligo -rl \
++    /           rl
+-- 
+2.17.1
+
+
+From 173d7421067aa78fc46ec967b15269f2b8b7e861 Mon Sep 17 00:00:00 2001
+From: John Thiltges <jthiltges2@unl.edu>
+Date: Tue, 2 Oct 2018 12:03:52 -0500
+Subject: [PATCH 6/6] Correct Authfile comment from "VO" to "VOMS group"
+
+---
+ configs/Authfile-auth | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/configs/Authfile-auth b/configs/Authfile-auth
+index cf152d4..daec6d0 100644
+--- a/configs/Authfile-auth
++++ b/configs/Authfile-auth
+@@ -1,8 +1,8 @@
+ # Authfile for authenticated StashCache access
+ ##############################################
+ 
+-# Users in VO /osg/ligo are granted read/lookup for path /user/ligo
+-# Users in VO /osg/ligo are granted read/lookup for path /
++# Users in VOMS group /osg/ligo are granted read/lookup for path /user/ligo
++# Users in VOMS group /osg/ligo are granted read/lookup for path /
+ g /osg/ligo /user/ligo rl \
+             /          rl
+ 
+-- 
+2.17.1
+
