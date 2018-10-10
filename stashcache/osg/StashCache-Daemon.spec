@@ -6,7 +6,8 @@ License:   Apache 2.0
 Group:     Grid
 URL:       https://opensciencegrid.github.io/StashCache/
 BuildArch: noarch
-Source0:   StashCache-Daemon-%{version}.tar.gz
+#Source0:   StashCache-Daemon-%{version}.tar.gz
+Source0:   StashCache-Daemon-master.tar.gz
 Patch0:    multiprocessing.patch
 Patch1:    timer.patch
 
@@ -90,7 +91,8 @@ Requires: globus-proxy-utils
 %systemd_postun_with_restart xrootd@stashcache-cache-server-auth.service xrootd-renew-proxy.service xrootd-renew-proxy.timer
 
 %prep
-%setup -n StashCache-Daemon-%{version} -q
+#%setup -n StashCache-Daemon-%{version} -q
+%setup -n StashCache-Daemon-master -q
 %patch0 -p1
 %patch1 -p1
 
