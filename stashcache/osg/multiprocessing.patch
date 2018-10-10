@@ -1,7 +1,7 @@
 From 885a28cbe57c0467afcb64e403b1acb9ddd49378 Mon Sep 17 00:00:00 2001
 From: John Thiltges <jthiltges2@unl.edu>
 Date: Fri, 5 Oct 2018 16:03:20 -0500
-Subject: [PATCH 1/3] Switch stashcache stats collection to multiprocessing and
+Subject: [PATCH 1/4] Switch stashcache stats collection to multiprocessing and
  cache results
 
 - Walking the cache filesystem to collect stats may take more than 15 minutes
@@ -254,7 +254,7 @@ index ef7cc3a..c5fc068 100755
 From b7fc8382d219cb4b71808d6d3bcc8fc7cdf1a9ce Mon Sep 17 00:00:00 2001
 From: John Thiltges <jthiltges2@unl.edu>
 Date: Wed, 10 Oct 2018 10:04:38 -0500
-Subject: [PATCH 2/3] Forking (multiprocessing) requires XRootD fork handler
+Subject: [PATCH 2/4] Forking (multiprocessing) requires XRootD fork handler
 
 ---
  src/stashcache | 4 ++++
@@ -282,7 +282,7 @@ index c5fc068..df1d7c1 100755
 From 1cca45709ae9754bd113d93bc94b1a9d2229ac88 Mon Sep 17 00:00:00 2001
 From: John Thiltges <jthiltges2@unl.edu>
 Date: Wed, 10 Oct 2018 10:09:23 -0500
-Subject: [PATCH 3/3] Update cinfo parser to file format v2
+Subject: [PATCH 3/4] Update cinfo parser to file format v2
 
 ---
  src/xrootd_cache_stats.py | 71 +++++++++++++++++++++------------------
@@ -418,6 +418,36 @@ index 485d288..dd28530 100755
      except struct.error, ex:
          # return what we've got
          raise ReadCInfoError("%s unable to decode access time data: %s" % (cinfo_file, str(ex)), result)
+-- 
+2.17.1
+
+
+From e49eaf81e48052da14aa87a0e1822adfec0aae4a Mon Sep 17 00:00:00 2001
+From: John Thiltges <jthiltges2@unl.edu>
+Date: Wed, 10 Oct 2018 15:34:19 -0500
+Subject: [PATCH 4/4] Handle case of parsing zero-byte cinfo files
+
+---
+ src/xrootd_cache_stats.py | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/src/xrootd_cache_stats.py b/src/xrootd_cache_stats.py
+index dd28530..85cc082 100755
+--- a/src/xrootd_cache_stats.py
++++ b/src/xrootd_cache_stats.py
+@@ -180,6 +180,12 @@ def read_cinfo(cinfo_file, now):
+     # buff_synced uses 1 bit per bufferSize block of bytes
+     # Length is rounded up to the nearest byte
+     buff_synced_len = int(math.ceil(float(file_size)/buffer_size/8))
++
++    # If the file_size is zero, state vector length is 1
++    # (Difference is due to Python's integer division returning the floor)
++    if file_size == 0:
++        buff_synced_len = 1
++
+     cf.read(buff_synced_len)
+ 
+     # Go past cksum (char[16]) and creationTime (time_t)
 -- 
 2.17.1
 

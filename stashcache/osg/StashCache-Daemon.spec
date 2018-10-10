@@ -1,7 +1,7 @@
 Name:      stashcache
 Summary:   StashCache metapackages
 Version:   0.9
-Release:   1.20181010.1%{?dist}
+Release:   1.20181010.2%{?dist}
 License:   Apache 2.0
 Group:     Grid
 URL:       https://opensciencegrid.github.io/StashCache/
@@ -129,7 +129,7 @@ mkdir -p %{buildroot}%{_sysconfdir}/grid-security/xrd
 %attr(-, xrootd, xrootd) %{_sysconfdir}/grid-security/xrd
 
 %changelog
-* Tue Oct 2 2018 John Thiltges <jthiltges@unl.edu> 0.9-1.20181010.1
+* Tue Oct 2 2018 John Thiltges <jthiltges@unl.edu> 0.9-1.20181010.2
 - Update to master (19765010)
 - Use multiprocessing for stats collection
 - Switch the stats collector service to simple and fix the timer conditions
