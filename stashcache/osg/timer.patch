@@ -1,0 +1,45 @@
+From 2d91977efefe3450bdeb8246e7c573ddd7f12a46 Mon Sep 17 00:00:00 2001
+From: John Thiltges <jthiltges2@unl.edu>
+Date: Wed, 3 Oct 2018 15:14:17 -0500
+Subject: [PATCH] Switch the stats collector service to simple and fix the
+ timer conditions
+
+- The timer didn't start without `OnBootSec`
+---
+ configs/stashcache-reporter.service | 2 +-
+ configs/stashcache-reporter.timer   | 5 +++--
+ 2 files changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/configs/stashcache-reporter.service b/configs/stashcache-reporter.service
+index f28ef12..a3bd6f3 100644
+--- a/configs/stashcache-reporter.service
++++ b/configs/stashcache-reporter.service
+@@ -4,7 +4,7 @@ Description=Report StashCache usage stats
+ [Service]
+ User=root
+ Group=root
+-Type=oneshot
++Type=simple
+ ExecStart=/usr/sbin/stashcache --one-shot
+ 
+ [Install]
+diff --git a/configs/stashcache-reporter.timer b/configs/stashcache-reporter.timer
+index f85b6a2..3d3155e 100644
+--- a/configs/stashcache-reporter.timer
++++ b/configs/stashcache-reporter.timer
+@@ -2,9 +2,10 @@
+ Description=Report StashCache usage stats periodically
+ 
+ [Timer]
+-OnUnitInactiveSec=10m
++OnBootSec=5m
++OnUnitActiveSec=10m
+ RandomizedDelaySec=3m
+ Unit=stashcache-reporter.service
+ 
+ [Install]
+-WantedBy=multi-user.target
++WantedBy=timers.target
+-- 
+2.17.1
+

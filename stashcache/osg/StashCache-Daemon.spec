@@ -1,13 +1,14 @@
 Name:      stashcache
 Summary:   StashCache metapackages
 Version:   0.9
-Release:   1.20181002.1%{?dist}
+Release:   1.20181010.1%{?dist}
 License:   Apache 2.0
 Group:     Grid
 URL:       https://opensciencegrid.github.io/StashCache/
 BuildArch: noarch
 Source0:   StashCache-Daemon-%{version}.tar.gz
-Patch0:    remove-systemctl.patch
+Patch0:    multiprocessing.patch
+Patch1:    timer.patch
 
 BuildRequires: systemd
 %{?systemd_requires}
@@ -91,6 +92,7 @@ Requires: globus-proxy-utils
 %prep
 %setup -n StashCache-Daemon-%{version} -q
 %patch0 -p1
+%patch1 -p1
 
 %install
 %if 0%{?el6}
@@ -125,8 +127,10 @@ mkdir -p %{buildroot}%{_sysconfdir}/grid-security/xrd
 %attr(-, xrootd, xrootd) %{_sysconfdir}/grid-security/xrd
 
 %changelog
-* Tue Oct 2 2018 John Thiltges <jthiltges@unl.edu> 0.9-1.20181002.1
-- Include additional changes to remove systemctl dependence (v0.9 to 19765010f6)
+* Tue Oct 2 2018 John Thiltges <jthiltges@unl.edu> 0.9-1.20181010.1
+- Update to master (19765010)
+- Use multiprocessing for stats collection
+- Switch the stats collector service to simple and fix the timer conditions
 
 * Fri Sep 28 2018 Mátyás Selmeci <matyas@cs.wisc.edu> 0.9-1
 - https://github.com/opensciencegrid/StashCache-Daemon/pull/8
