@@ -43,8 +43,8 @@
 #-------------------------------------------------------------------------------
 Name:      xrootd
 Epoch:     1
-Version:   4.8.6
-Release:   0.experimental.552240.9b957cae%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
+Version:   4.9.0
+Release:   0.rc3.1%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
 Summary:   Extended ROOT file server
 Group:     System Environment/Daemons
 License:   LGPLv3+
@@ -54,11 +54,13 @@ URL:       http://xrootd.org/
 # cd xrootd
 # git-archive master | gzip -9 > ~/rpmbuild/SOURCES/xrootd.tgz
 Source0:   xrootd.tar.gz
-Patch0:    set_verify_depth.patch
 
 %if %{?_with_compat:1}%{!?_with_compat:0}
 Source1:   xrootd-3.3.6.tar.gz
 %endif
+
+Patch0: close_stream.patch
+Patch1: improve_checksum_error_messages.patch
 
 BuildRoot: %{_tmppath}/%{name}-root
 
@@ -207,8 +209,8 @@ Summary:	Libraries used by xrootd servers
 Group:		System Environment/Libraries
 Requires:	%{name}-libs%{?_isa} = %{epoch}:%{version}-%{release}
 Requires:	%{name}-client-libs%{?_isa} = %{epoch}:%{version}-%{release}
-Obsoletes:      xrootd-macaroons
-Obsoletes:      xrootd-tpc
+Obsoletes:  xrootd-macaroons
+Obsoletes:  xrootd-tpc
 
 %description server-libs
 This package contains libraries used by xrootd servers.
@@ -400,6 +402,7 @@ This package contains compatibility binaries for xrootd 3 servers.
 
 pushd xrootd
 %patch0 -p1
+%patch1 -p1
 popd
 
 %if %{?_with_compat:1}%{!?_with_compat:0}
@@ -937,9 +940,6 @@ fi
 # Changelog
 #-------------------------------------------------------------------------------
 %changelog
-* Tue Oct 23 2018 Brian Bockelman <bbockelm@cse.unl.edu> - 1:4.8.6-0.experimental.552240.9b957cae
-- Rebuild with the set verify depth patch.
-
 * Tue May 08 2018 Michal Simon <michal.simon@cern.ch> 
 - Make python3 sub-package optional
 
