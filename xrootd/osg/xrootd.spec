@@ -44,7 +44,7 @@
 Name:      xrootd
 Epoch:     1
 Version:   4.9.0
-Release:   0.rc3.1%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
+Release:   1.20190319.1%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
 Summary:   Extended ROOT file server
 Group:     System Environment/Daemons
 License:   LGPLv3+
@@ -59,8 +59,7 @@ Source0:   xrootd.tar.gz
 Source1:   xrootd-3.3.6.tar.gz
 %endif
 
-Patch0: close_stream.patch
-Patch1: improve_checksum_error_messages.patch
+Patch0: 0001-Do-not-hold-1MB-buffers-in-idle-HTTP-protocol-object.patch
 
 BuildRoot: %{_tmppath}/%{name}-root
 
@@ -402,7 +401,6 @@ This package contains compatibility binaries for xrootd 3 servers.
 
 pushd xrootd
 %patch0 -p1
-%patch1 -p1
 popd
 
 %if %{?_with_compat:1}%{!?_with_compat:0}
@@ -506,6 +504,9 @@ rm -rf $RPM_BUILD_ROOT%{_sysconfdir}/xrootd/*
 
 # ceph posix unversioned so
 rm -f $RPM_BUILD_ROOT%{_libdir}/libXrdCephPosix.so
+
+# config paths
+mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/%{name}/config.d/
 
 # var paths
 mkdir -p $RPM_BUILD_ROOT%{_var}/log/xrootd
@@ -728,6 +729,7 @@ fi
 %attr(-,xrootd,xrootd) %dir %{_var}/log/xrootd
 %attr(-,xrootd,xrootd) %dir %{_var}/run/xrootd
 %attr(-,xrootd,xrootd) %dir %{_var}/spool/xrootd
+%attr(-,xrootd,xrootd) %dir %{_sysconfdir}/%{name}/config.d
 %config(noreplace) %{_sysconfdir}/logrotate.d/xrootd
 
 %if %{use_systemd}
@@ -940,6 +942,12 @@ fi
 # Changelog
 #-------------------------------------------------------------------------------
 %changelog
+* Tue Mar 19 2019 John Thiltges <jthiltges@unl.edu>
+- Release 1MB buffer on idle HTTP protocol handlers
+
+* Tue Jan 08 2019 Edgar Fajardo <emfajard@ucsd.edu>
+- Create config dir /etc/xrootd/config.d
+
 * Tue May 08 2018 Michal Simon <michal.simon@cern.ch> 
 - Make python3 sub-package optional
 
