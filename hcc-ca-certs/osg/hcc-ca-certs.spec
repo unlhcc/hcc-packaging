@@ -1,6 +1,6 @@
 Name:           hcc-ca-certs
 Version:        1.5
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        HCC-CA Certs
 
 Group:          System Environment/Base
@@ -39,6 +39,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed May 08 2019 John Thiltges <jthiltges2@unl.edu> - 1.5-2
+- Remove LetsEncrypt CA in favor of using local system certificate store
+
 * Wed May 08 2019 John Thiltges <jthiltges2@unl.edu> - 1.5-1
 - Update red-puppet.unl.edu CA cert with new expiration
 - Add new HCC-CA cert
