@@ -1,0 +1,26 @@
+From 9a968461a14dcc73d141cc5a0e4517ffb82aa977 Mon Sep 17 00:00:00 2001
+From: John Thiltges <jthiltges2@unl.edu>
+Date: Tue, 25 Jun 2019 09:39:32 -0500
+Subject: [PATCH] [XrdHttp] Fix one-byte overrun in Tobase64()
+
+Allocate an additional byte to allow for a terminating null in the base64 output
+---
+ src/XrdHttp/XrdHttpReq.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/XrdHttp/XrdHttpReq.cc b/src/XrdHttp/XrdHttpReq.cc
+index 0d162e03..cd5e293a 100644
+--- a/src/XrdHttp/XrdHttpReq.cc
++++ b/src/XrdHttp/XrdHttpReq.cc
+@@ -1754,7 +1754,7 @@ XrdHttpReq::PostProcessChecksum(std::string &digest_header) {
+         free(digest_binary_value);
+         return -1;
+       }
+-      char *digest_base64_value = (char *)malloc(digest_length);
++      char *digest_base64_value = (char *)malloc(digest_length + 1);
+       // Binary length is precisely half the size of the hex-encoded digest_value; hence, divide length by 2.
+       Tobase64(digest_binary_value, digest_length/2, digest_base64_value);
+       free(digest_binary_value);
+-- 
+2.21.0
+

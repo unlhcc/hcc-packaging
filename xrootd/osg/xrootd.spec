@@ -43,8 +43,8 @@
 #-------------------------------------------------------------------------------
 Name:      xrootd
 Epoch:     1
-Version:   4.9.0
-Release:   1.20190321.1%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
+Version:   4.9.1
+Release:   1.20190629.1%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
 Summary:   Extended ROOT file server
 Group:     System Environment/Daemons
 License:   LGPLv3+
@@ -59,8 +59,7 @@ Source0:   xrootd.tar.gz
 Source1:   xrootd-3.3.6.tar.gz
 %endif
 
-Patch0: 0001-Do-not-hold-1MB-buffers-in-idle-HTTP-protocol-object.patch
-Patch1: 0001-XrdTpc-Only-use-Curl-s-low-speed-limit-with-libcurl-.patch
+Patch0: 0001-XrdHttp-Fix-one-byte-overrun-in-Tobase64.patch
 
 BuildRoot: %{_tmppath}/%{name}-root
 
@@ -402,7 +401,6 @@ This package contains compatibility binaries for xrootd 3 servers.
 
 pushd xrootd
 %patch0 -p1
-%patch1 -p1
 popd
 
 %if %{?_with_compat:1}%{!?_with_compat:0}
@@ -944,8 +942,8 @@ fi
 # Changelog
 #-------------------------------------------------------------------------------
 %changelog
-* Tue Mar 21 2019 John Thiltges <jthiltges@unl.edu>
-- Only enable curl's low-speed-limit with libcurl >= v7.38
+* Tue Jun 25 2019 John Thiltges <jthiltges@unl.edu>
+- Patch buffer overrun in Tobase64()
 
 * Tue Mar 19 2019 John Thiltges <jthiltges@unl.edu>
 - Release 1MB buffer on idle HTTP protocol handlers
