@@ -43,8 +43,8 @@
 #-------------------------------------------------------------------------------
 Name:      xrootd
 Epoch:     1
-Version:   4.9.1
-Release:   1.20190708.1%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
+Version:   4.10.0
+Release:   0.rc5%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
 Summary:   Extended ROOT file server
 Group:     System Environment/Daemons
 License:   LGPLv3+
@@ -59,8 +59,8 @@ Source0:   xrootd.tar.gz
 Source1:   xrootd-3.3.6.tar.gz
 %endif
 
-Patch0: 0001-XrdHttp-Fix-one-byte-overrun-in-Tobase64.patch
-Patch1: 0001-XrdTpc-Add-curl-handle-cleanup-on-redirections-or-er.patch
+Patch0: 0001-XrdTpc-Add-curl-handle-cleanup-on-redirections-or-er.patch
+Patch1: XrdHttp-Fix-redir.patch
 
 BuildRoot: %{_tmppath}/%{name}-root
 
@@ -83,9 +83,7 @@ BuildRequires: python2-devel
 %if %{?fedora}%{!?fedora:0} >= 13
 BuildRequires: python3-devel
 %else
-  %if %{?_with_python3:1}%{!?_with_python3:0} 
-BuildRequires: python34-devel
-  %endif
+BuildRequires: python%{python3_pkgversion}-devel
 %endif
 
 BuildRequires: openssl-devel
@@ -103,6 +101,10 @@ BuildRequires: libradosstriper-devel >= 11.0
     %else
 BuildRequires: ceph-devel >= 0.87
     %endif
+%endif
+
+%if %{?_with_xrdclhttp:1}%{!?_with_xrdclhttp:0}
+BuildRequires: davix-devel
 %endif
 
 BuildRequires:	doxygen
@@ -359,6 +361,19 @@ Ceph back-end plug-in for XRootD.
 %endif
 
 #-------------------------------------------------------------------------------
+# xrdcl-http
+#-------------------------------------------------------------------------------
+%if %{?_with_xrdclhttp:1}%{!?_with_xrdclhttp:0}
+%package -n xrdcl-http
+Summary:  HTTP client plug-in for XRootD client
+Group:    System Environment/Libraries
+Requires: %{name}-client = %{epoch}:%{version}-%{release}
+%description -n xrdcl-http
+xrdcl-http is an XRootD client plugin which allows XRootD to interact 
+with HTTP repositories.
+%endif
+
+#-------------------------------------------------------------------------------
 # tests
 #-------------------------------------------------------------------------------
 %if %{?_with_tests:1}%{!?_with_tests:0}
@@ -424,15 +439,17 @@ export CXXFLAGS='-fsanitize=address'
 mkdir build
 pushd build
 cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DFORCE_WERROR=TRUE \
 %if %{?_with_tests:1}%{!?_with_tests:0}
       -DENABLE_TESTS=TRUE \
 %else
       -DENABLE_TESTS=FALSE \
 %endif
 %if %{?_with_ceph:1}%{!?_with_ceph:0}
-      -DENABLE_CEPH=TRUE \
-%else
-      -DENABLE_CEPH=FALSE \
+      -DXRDCEPH_SUBMODULE=TRUE \
+%endif
+%if %{?_with_xrdclhttp:1}%{!?_with_xrdclhttp:0}
+      -DXRDCLHTTP_SUBMODULE=TRUE \
 %endif
       -DUSE_LIBC_SEMAPHORE=%{use_libc_semaphore} ../
 
@@ -561,6 +578,9 @@ install -m 644 packaging/common/xrootd-http.cfg $RPM_BUILD_ROOT%{_sysconfdir}/xr
 # client plug-in config
 mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/xrootd/client.plugins.d
 install -m 644 packaging/common/client-plugin.conf.example $RPM_BUILD_ROOT%{_sysconfdir}/xrootd/client.plugins.d/client-plugin.conf.example
+%if %{?_with_xrdclhttp:1}%{!?_with_xrdclhttp:0}
+install -m 644 src/XrdClHttp/config/http.client.conf.example $RPM_BUILD_ROOT%{_sysconfdir}/xrootd/client.plugins.d/xrdcl-http-plugin.conf
+%endif
 
 # client config
 install -m 644 packaging/common/client.conf $RPM_BUILD_ROOT%{_sysconfdir}/xrootd/client.conf
@@ -825,6 +845,7 @@ fi
 %{_includedir}/xrootd/XrdCms
 %{_includedir}/xrootd/XrdFileCache
 %{_includedir}/xrootd/XrdOss
+%{_includedir}/xrootd/XrdOfs
 %{_includedir}/xrootd/XrdSfs
 %{_includedir}/xrootd/XrdXrootd
 %{_includedir}/xrootd/XrdHttp
@@ -883,6 +904,13 @@ fi
 %{_libdir}/libXrdCeph-4.so
 %{_libdir}/libXrdCephXattr-4.so
 %{_libdir}/libXrdCephPosix.so*
+%endif
+
+%if %{?_with_xrdclhttp:1}%{!?_with_xrdclhttp:0}
+%files -n xrdcl-http
+%defattr(-,root,root,-)
+%{_libdir}/libXrdClHttp-4.so
+%{_sysconfdir}/xrootd/client.plugins.d/xrdcl-http-plugin.conf
 %endif
 
 %if %{?_with_tests:1}%{!?_with_tests:0}
@@ -944,14 +972,8 @@ fi
 # Changelog
 #-------------------------------------------------------------------------------
 %changelog
-* Mon Jul 08 2019 John Thiltges <jthiltges@unl.edu>
-- Patch leak in XrdTpc curl handles
-
-* Tue Jun 25 2019 John Thiltges <jthiltges@unl.edu>
-- Patch buffer overrun in Tobase64()
-
-* Tue Mar 19 2019 John Thiltges <jthiltges@unl.edu>
-- Release 1MB buffer on idle HTTP protocol handlers
+* Wed Apr 17 2019 Michal Simon <michal.simon@cern.ch> - 4.10.0-1
+- Create add xrdcl-http package
 
 * Tue Jan 08 2019 Edgar Fajardo <emfajard@ucsd.edu>
 - Create config dir /etc/xrootd/config.d
