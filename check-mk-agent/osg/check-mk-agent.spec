@@ -2,13 +2,13 @@
 
 # Producing (minimal) source tarfile:
 # git clone https://github.com/tribe29/checkmk.git
-# VER=1.5.0p16
+# VER=1.5.0p21
 # git archive --prefix=check-mk-agent-${VER}/ -o check-mk-agent-${VER}.tar v${VER} agents defines.make
 # tar --delete --file check-mk-agent-${VER}.tar check-mk-agent-${VER}/agents/windows check-mk-agent-${VER}/agents/wnx
 # gzip check-mk-agent-${VER}.tar
 
 Name:       check-mk-agent
-Version:    1.5.0p16
+Version:    1.5.0p21
 Release:    1%{?dist}
 Summary:    The check-mk's Agent
 License:    GPLv2 and GPLv3
@@ -99,5 +99,8 @@ install -m 644 cfg_examples/systemd/check_mk.socket   %{buildroot}%{_unitdir}/ch
 %config(noreplace) %{_sysconfdir}/check-mk-agent
 
 %changelog
+* Fri Sep 06 2019 John Thiltges <jthiltges@unl.edu> - 1.5.0p21-1
+- New upstream release
+
 * Fri Jun 07 2019 John Thiltges <jthiltges@unl.edu> - 1.5.0p16-1
 - Initial build of agent-only package
