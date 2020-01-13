@@ -1,0 +1,60 @@
+From 681761c94fc81aa70a7b2d4e5066ea49418c977d Mon Sep 17 00:00:00 2001
+From: John Thiltges <jthiltges2@unl.edu>
+Date: Fri, 11 Jan 2019 14:32:34 -0600
+Subject: [PATCH] Initial Condor support
+
+---
+ nhc | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/nhc b/nhc
+index 498bf2e..bc64215 100755
+--- a/nhc
++++ b/nhc
+@@ -67,6 +67,9 @@ function die() {
+         echo "$HOSTNAME:diagnosis:NHC: $*" >&$NHC_FD_OUT
+         echo "end" >&$NHC_FD_OUT
+         return 77
++    elif [[ "$NHC_RM" == "condor" ]]; then
++        echo "NHC_OK = FALSE" >&$NHC_FD_OUT
++        echo "NHC_STATUS = '$*'" >&$NHC_FD_OUT
+     elif [[ -n "$LOGFILE" ]]; then
+         oecho "ERROR:  $NAME:  Health check failed:  $*"
+     fi
+@@ -379,6 +382,13 @@ function nhcmain_finalize_env() {
+         TIMEOUT=0
+     fi
+ 
++    if [[ "$NHC_RM" == "condor" ]]; then
++        # With Condor, we return the status and note directly from NHC.
++        ONLINE_NODE=:
++        OFFLINE_NODE=:
++        MARK_OFFLINE=0
++    fi
++
+     # If timestamps are desired, initialize them here.
+     if [[ $TS -ne 0 ]]; then
+         TS=$(date '+%s')
+@@ -424,6 +434,9 @@ function nhcmain_find_rm() {
+     elif type -a -p -f -P qselect >&/dev/null ; then
+         NHC_RM="sge"
+         return 0
++    elif type -a -p -f -P condor_status >&/dev/null ; then
++        NHC_RM="condor"
++        return 0
+     fi
+ 
+     if [[ -z "$NHC_RM" ]]; then
+@@ -643,6 +656,9 @@ function nhcmain_finish() {
+         echo "$HOSTNAME:diagnosis:HEALTHY" >&$NHC_FD_OUT
+         echo "end" >&$NHC_FD_OUT
+         return 0
++    elif [[ "$NHC_RM" == "condor" ]]; then
++        echo "NHC_OK = TRUE" >&$NHC_FD_OUT
++        echo "NHC_STATUS = HEALTHY" >&$NHC_FD_OUT
+     fi
+     kill_watchdog
+     [[ $NHC_FD_OUT -eq 3 ]] && exec 1>&3- 2>&4-
+-- 
+2.23.0
+
