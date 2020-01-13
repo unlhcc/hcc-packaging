@@ -9,7 +9,7 @@ Name: lbnl-nhc
 Version: 1.4.2
 #Release: %{_rel}%{?dist}
 #Release: 1%{?dist}
-Release: 1.20200113.1%{?dist}
+Release: 1.20200113.2%{?dist}
 License: US Dept. of Energy (BSD-like)
 Group: Applications/System
 URL: https://github.com/mej/nhc/
@@ -91,6 +91,6 @@ test "$RPM_BUILD_ROOT" != "/" && %{__rm} -rf $RPM_BUILD_ROOT
 %config(noreplace) %{_sbindir}/%{sname}-wrapper
 
 %changelog
-* Mon Jan 13 2020 John Thiltges <jthiltges@unl.edu> - 1.4.2-1.20200113.1
+* Mon Jan 13 2020 John Thiltges <jthiltges@unl.edu> - 1.4.2-1.20200113.2
 - Initial support for HTCondor
 - Upstream fix for failing tests (212f4f0f)

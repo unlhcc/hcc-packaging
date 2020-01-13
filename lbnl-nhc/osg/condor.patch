@@ -1,4 +1,4 @@
-From 681761c94fc81aa70a7b2d4e5066ea49418c977d Mon Sep 17 00:00:00 2001
+From 3f7b630e90ba15b69c8195e705d2a6fdb5c64f08 Mon Sep 17 00:00:00 2001
 From: John Thiltges <jthiltges2@unl.edu>
 Date: Fri, 11 Jan 2019 14:32:34 -0600
 Subject: [PATCH] Initial Condor support
@@ -8,7 +8,7 @@ Subject: [PATCH] Initial Condor support
  1 file changed, 16 insertions(+)
 
 diff --git a/nhc b/nhc
-index 498bf2e..bc64215 100755
+index 498bf2e..2a7118a 100755
 --- a/nhc
 +++ b/nhc
 @@ -67,6 +67,9 @@ function die() {
@@ -16,8 +16,8 @@ index 498bf2e..bc64215 100755
          echo "end" >&$NHC_FD_OUT
          return 77
 +    elif [[ "$NHC_RM" == "condor" ]]; then
-+        echo "NHC_OK = FALSE" >&$NHC_FD_OUT
-+        echo "NHC_STATUS = '$*'" >&$NHC_FD_OUT
++        echo "NHC_OK = false" >&$NHC_FD_OUT
++        echo "NHC_STATUS = \"$*\"" >&$NHC_FD_OUT
      elif [[ -n "$LOGFILE" ]]; then
          oecho "ERROR:  $NAME:  Health check failed:  $*"
      fi
@@ -50,8 +50,8 @@ index 498bf2e..bc64215 100755
          echo "end" >&$NHC_FD_OUT
          return 0
 +    elif [[ "$NHC_RM" == "condor" ]]; then
-+        echo "NHC_OK = TRUE" >&$NHC_FD_OUT
-+        echo "NHC_STATUS = HEALTHY" >&$NHC_FD_OUT
++        echo "NHC_OK = true" >&$NHC_FD_OUT
++        echo "NHC_STATUS = \"Healthy\"" >&$NHC_FD_OUT
      fi
      kill_watchdog
      [[ $NHC_FD_OUT -eq 3 ]] && exec 1>&3- 2>&4-
