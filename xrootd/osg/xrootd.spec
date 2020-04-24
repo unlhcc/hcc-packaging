@@ -2,31 +2,39 @@
 # Helper macros
 #-------------------------------------------------------------------------------
 %if %{?rhel:1}%{!?rhel:0}
+    # starting with rhel 7 we have systemd and macaroons,
+    # also glibc semaphores are fixed
     %if %{rhel} >= 7
         %define use_systemd 1
         %define have_macaroons 1
+		%define use_libc_semaphore 1
     %else
         %define use_systemd 0
         %define have_macaroons 0
+ 		%define use_libc_semaphore 0
     %endif
 %else
+    # do we have macaroons ?
     %if %{?fedora}%{!?fedora:0} >= 28
         %define have_macaroons 1
     %else
         %define have_macaroons 0
     %endif
+    # do we have systemd ?
     %if %{?fedora}%{!?fedora:0} >= 19
         %define use_systemd 1
     %else
         %define use_systemd 0
     %endif
+	# can we use glibc semaphores ?
+	%if %{?fedora}%{!?fedora:0} >= 22
+	    %define use_libc_semaphore 1
+	%else
+	    %define use_libc_semaphore 0
+	%endif
 %endif
 
-%if %{?fedora}%{!?fedora:0} >= 22
-    %define use_libc_semaphore 1
-%else
-    %define use_libc_semaphore 0
-%endif
+
 
 %if %{?_with_ceph11:1}%{!?_with_ceph11:0}
     %define _with_ceph 1
@@ -43,8 +51,8 @@
 #-------------------------------------------------------------------------------
 Name:      xrootd
 Epoch:     1
-Version:   4.10.0
-Release:   0.rc5%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
+Version:   4.11.3
+Release:   1.2.20200424.1%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
 Summary:   Extended ROOT file server
 Group:     System Environment/Daemons
 License:   LGPLv3+
@@ -59,9 +67,11 @@ Source0:   xrootd.tar.gz
 Source1:   xrootd-3.3.6.tar.gz
 %endif
 
-Patch0: 0001-XrdTpc-Add-curl-handle-cleanup-on-redirections-or-er.patch
-Patch1: XrdHttp-Fix-redir.patch
-
+Patch0: avoid_segv.patch 
+Patch1: mkcol.patch
+Patch2: error_code.patch
+Patch3: 0001-Initialize-the-XrdAccEntityInfo-structure.patch
+ 
 BuildRoot: %{_tmppath}/%{name}-root
 
 BuildRequires: cmake
@@ -183,9 +193,6 @@ development.
 Summary:	Libraries used by xrootd clients
 Group:		System Environment/Libraries
 Requires:	%{name}-libs%{?_isa} = %{epoch}:%{version}-%{release}
-%if %{use_libc_semaphore}
-Requires:       glibc >= 2.21
-%endif
 
 %description client-libs
 This package contains libraries used by xrootd clients.
@@ -415,14 +422,14 @@ This package contains compatibility binaries for xrootd 3 servers.
 %prep
 %setup -c -n xrootd
 
-pushd xrootd
-%patch0 -p1
-%patch1 -p1
-popd
-
 %if %{?_with_compat:1}%{!?_with_compat:0}
 %setup -T -D -n %{name} -a 1
 %endif
+
+%patch0 -p1
+%patch1 -p1
+%patch2 -p1
+%patch3 -p1
 
 %build
 cd xrootd
@@ -724,7 +731,6 @@ fi
 %{_bindir}/XrdCnsd
 %{_bindir}/xrdpwdadmin
 %{_bindir}/xrdsssadmin
-%{_bindir}/xrdmapc
 %{_bindir}/xrootd
 %{_bindir}/xrdpfc_print
 %{_bindir}/xrdacctest
@@ -740,7 +746,7 @@ fi
 %{_mandir}/man8/xrdsssadmin.8*
 %{_mandir}/man8/xrootd.8*
 %{_mandir}/man8/xrdpfc_print.8*
-%{_datadir}/xrootd
+%{_datadir}/xrootd/utils
 %attr(-,xrootd,xrootd) %config(noreplace) %{_sysconfdir}/xrootd/xrootd-clustered.cfg
 %attr(-,xrootd,xrootd) %config(noreplace) %{_sysconfdir}/xrootd/xrootd-standalone.cfg
 %attr(-,xrootd,xrootd) %config(noreplace) %{_sysconfdir}/xrootd/xrootd-filecache-clustered.cfg
@@ -792,6 +798,7 @@ fi
 %{_libdir}/libXrdUtils.so
 %{_libdir}/libXrdXml.so
 %{_includedir}/xrootd/XrdXml/XrdXmlReader.hh
+%{_datadir}/xrootd/cmake
 
 %files client-libs
 %defattr(-,root,root,-)
@@ -800,6 +807,8 @@ fi
 %{_libdir}/libXrdFfs.so.2*
 %{_libdir}/libXrdPosix.so.2*
 %{_libdir}/libXrdPosixPreload.so.1*
+%{_libdir}/libXrdSsiLib.so.*
+%{_libdir}/libXrdSsiShMap.so.*
 %{_sysconfdir}/xrootd/client.plugins.d/client-plugin.conf.example
 %config(noreplace) %{_sysconfdir}/xrootd/client.conf
 # This lib may be used for LD_PRELOAD so the .so link needs to be included
@@ -834,10 +843,9 @@ fi
 %{_libdir}/libXrdOssSIgpfsT-4.so
 %{_libdir}/libXrdServer.so.*
 %{_libdir}/libXrdSsi-4.so
-%{_libdir}/libXrdSsiLib.so.*
 %{_libdir}/libXrdSsiLog-4.so
-%{_libdir}/libXrdSsiShMap.so.*
 %{_libdir}/libXrdThrottle-4.so
+%{_libdir}/libXrdCmsRedirectLocal-4.so
 
 %files server-devel
 %defattr(-,root,root,-)
@@ -869,6 +877,7 @@ fi
 %{_bindir}/xrdfs
 %{_bindir}/xrdgsiproxy
 %{_bindir}/xrdstagetool
+%{_bindir}/xrdmapc
 %{_mandir}/man1/xprep.1*
 %{_mandir}/man1/xrd.1*
 %{_mandir}/man1/xrdadler32.1*
@@ -878,6 +887,7 @@ fi
 %{_mandir}/man1/xrdfs.1*
 %{_mandir}/man1/xrdgsiproxy.1*
 %{_mandir}/man1/xrdstagetool.1*
+%{_mandir}/man1/xrdmapc.1*
 
 %files fuse
 %defattr(-,root,root,-)
@@ -972,6 +982,15 @@ fi
 # Changelog
 #-------------------------------------------------------------------------------
 %changelog
+* Mon Mar 30 2020 Diego Davila <didavila@ucsd.edu> - 4.11.3-1.2
+- adding patch: erro_code.patch (software-4017)
+
+* Fri Mar 27 2020 Diego Davila <didavila@ucsd.edu> - 4.11.3-2
+- adding patches: avoid_segv.patch and mkcol.patch (software-4017)
+
+* Mon Sep 02 2019 Michal Simon <michal.simon@cern.ch> - 4.10.1-1
+- Move xrdmapc to client package
+
 * Wed Apr 17 2019 Michal Simon <michal.simon@cern.ch> - 4.10.0-1
 - Create add xrdcl-http package
 

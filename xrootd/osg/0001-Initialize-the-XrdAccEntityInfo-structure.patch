@@ -1,0 +1,48 @@
+From 771931682488c293f1f105e0876e77e196d522e5 Mon Sep 17 00:00:00 2001
+From: Brian Bockelman <bbockelm@cse.unl.edu>
+Date: Mon, 20 Apr 2020 10:51:52 -0500
+Subject: [PATCH] Initialize the XrdAccEntityInfo structure.
+
+When one vorg is provided and no groups are provided, the `grup`
+data memeber may be uninitialized on use.  This has resulted in
+periodic segfaults on the SciTokens ACC provider; I'm guessing that
+`grup` quite often has an initial value of `nullptr`, even when
+uninitialized.
+
+I suspect this hasn't been observed for the VOMS provider because
+all VOMS server implementations create at least one group; hence
+this case is never hit.
+---
+ src/XrdAcc/XrdAccEntity.hh | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/xrootd/src/XrdAcc/XrdAccEntity.hh b/src/XrdAcc/XrdAccEntity.hh
+index ee580a9ca..7a3f35367 100644
+--- a/xrootd/src/XrdAcc/XrdAccEntity.hh
++++ b/xrootd/src/XrdAcc/XrdAccEntity.hh
+@@ -42,7 +42,12 @@ struct XrdAccEntityInfo
+        const char *vorg;
+        const char *role;
+        const char *grup;
+-                   XrdAccEntityInfo() {}
++                   XrdAccEntityInfo() :
++                       name(NULL),
++                       host(NULL),
++                       vorg(NULL),
++                       role(NULL),
++                       grup(NULL) {}
+                   ~XrdAccEntityInfo() {}
+       };
+ 
+@@ -91,7 +96,7 @@ struct EntityAttr
+       {const char *vorg;
+        const char *role;
+        const char *grup;
+-                   EntityAttr() {}
++                   EntityAttr() : vorg(NULL), role(NULL), grup(NULL) {}
+                   ~EntityAttr() {}
+       };
+ 
+-- 
+2.25.1
+
