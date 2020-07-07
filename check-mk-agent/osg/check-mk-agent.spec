@@ -16,6 +16,13 @@ URL:        https://checkmk.com/
 Source:     check-mk-agent-%{version}.tar.gz
 AutoReq:    0
 
+# Minimal perl
+%if 0%{?el6} || 0%{?el7}
+BuildRequires: perl
+%else
+BuildRequires: perl-interpreter
+%endif
+
 %description
 This package contains the check-mk's agent. Install the following
 agent on all the machines you plan to monitor with check-mk.
@@ -27,6 +34,8 @@ agent on all the machines you plan to monitor with check-mk.
 
 pushd agents
 rm -f waitmax
+# Enable debug info
+perl -pi -e 's/gcc -s/gcc -g/g' Makefile
 make waitmax
 
 %install
@@ -76,6 +85,9 @@ rm plugins/*.aix \
 install -d -m 755 %{buildroot}%{_datadir}/check-mk-agent/available-plugins
 install -m 755 plugins/* %{buildroot}%{_datadir}/check-mk-agent/available-plugins/
 chmod 644 %{buildroot}%{_datadir}/check-mk-agent/available-plugins/README
+
+# Convert unversioned python shebang to python2 for EL8 build compatibility
+perl -p -i -e 's/^(#!.*python)$/${1}2/m' %{buildroot}%{_datadir}/check-mk-agent/available-plugins/*
 
 # Upstream now ships systemd service and socket files
 %if 0%{?fedora} || 0%{?rhel} >= 7
