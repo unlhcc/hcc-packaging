@@ -1,15 +1,12 @@
+%define dver   %{?rhel}%{!?rhel:0}
+%define dist .hcc.el%{dver}
+
 Name:		buildsys-macros
 Summary:	Macros for the OSG Buildsystem
-%if 0%{?rhel} < 6
-Version:	5
-%else
-Version:        %{?rhel}
-%endif
-Release:	9%{?dist}
+Version:        %{dver}
+Release:	1%{dist}
 License:	GPL
-Group:		Development/Buildsystem
-BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-Buildarch:  	noarch
+BuildArch:      noarch
 Requires:	rpmdevtools
 
 %description
@@ -20,35 +17,24 @@ Macros for the OSG Buildsystem
 %build
 
 %install
-rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT/etc/rpm/
-VERSION=%{version}
-printf %s%b "%" "rhel $VERSION\n" >> $RPM_BUILD_ROOT/etc/rpm/macros.disttag
-printf %s%b "%" "dist .hcc.el$VERSION\n" >> $RPM_BUILD_ROOT/etc/rpm/macros.disttag
-printf %s%b "%" "el$VERSION 1\n" >> $RPM_BUILD_ROOT/etc/rpm/macros.disttag
+DVER=%{dver}
+DIST=%{dist}
+printf %s%b "%" "rhel $DVER\n" >> $RPM_BUILD_ROOT/etc/rpm/macros.disttag
+printf %s%b "%" "dist $DIST\n" >> $RPM_BUILD_ROOT/etc/rpm/macros.disttag
+printf %s%b "%" "el$DVER 1\n" >> $RPM_BUILD_ROOT/etc/rpm/macros.disttag
 printf %s%b "%" "hcc 1\n" >> $RPM_BUILD_ROOT/etc/rpm/macros.disttag
 printf %s%b "%" "__arch_install_post /usr/lib/rpm/check-buildroot\n" >> $RPM_BUILD_ROOT/etc/rpm/macros.checkbuild
-if [[ $VERSION -eq 5 ]]; then
-    printf %s%b "%" "_source_filedigest_algorithm 1\n" >> $RPM_BUILD_ROOT/etc/rpm/macros.digest
-    printf %s%b "%" "_binary_filedigest_algorithm 1\n" >> $RPM_BUILD_ROOT/etc/rpm/macros.digest
-    printf %s%b "%" "_binary_payload w9.gzdio\n" >> $RPM_BUILD_ROOT/etc/rpm/macros.digest
-    printf %s%b "%" "_source_payload w9.gzdio\n" >> $RPM_BUILD_ROOT/etc/rpm/macros.digest
-    printf %s%b "%" "_default_patch_fuzz 2\n" >> $RPM_BUILD_ROOT/etc/rpm/macros.digest
-fi
 
-
-%clean
-rm -rf $RPM_BUILD_ROOT
 
 %files
-%defattr(-,root,root)
-%if %{version} == 5
-/etc/rpm/macros.digest
-%endif
 /etc/rpm/macros.disttag
 /etc/rpm/macros.checkbuild
 
 %changelog
+* Thu Jul 09 2020 John Thiltges <jthiltges@unl.edu> - 8-1
+- Updated to EL8, following buildsys-macros-8-2.osgup.el8
+
 * Mon Sep 09 2013 Brian Bockelman <bbockelm@cse.unl.edu> - 6-9
 - Converted OSG buildsys-macros to HCC.
 - Added 'hcc' macro that's 1 for all HCC builds.
