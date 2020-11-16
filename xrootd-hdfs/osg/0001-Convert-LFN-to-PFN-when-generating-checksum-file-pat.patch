@@ -1,0 +1,40 @@
+From 74828bb7b634a9ee11cfd87a87ac90996ee0436f Mon Sep 17 00:00:00 2001
+From: John Thiltges <jthiltges2@unl.edu>
+Date: Thu, 12 Nov 2020 17:41:27 -0600
+Subject: [PATCH] Convert LFN to PFN when generating checksum file path
+
+---
+ src/XrdHdfsChecksum.cc | 15 +++++++++++----
+ 1 file changed, 11 insertions(+), 4 deletions(-)
+
+diff --git a/src/XrdHdfsChecksum.cc b/src/XrdHdfsChecksum.cc
+index 3754012..fc761d2 100644
+--- a/src/XrdHdfsChecksum.cc
++++ b/src/XrdHdfsChecksum.cc
+@@ -162,12 +162,19 @@ ChecksumManager::Init(const char * /*config_fn*/, const char *default_checksum)
+ }
+ 
+ std::string
+-ChecksumManager::GetChecksumFilename(const char * pfn) const
++ChecksumManager::GetChecksumFilename(const char * lfn) const
+ {
+-    if (!pfn) {return "";}
++    if (!lfn) {return "";}
+ 
+-    std::string filename = "/cksums/";
+-    filename += pfn;
++    std::vector<char> pfn;
++    int rc;
++
++    pfn.reserve(MAXPATHLEN+8);
++    g_hdfs_oss->Lfn2Pfn(lfn, &pfn[0], pfn.capacity(), rc);
++
++    if (rc) {return "";}
++
++    std::string filename = "/cksums/" + std::string(pfn.data());
+     return filename;
+ }
+ 
+-- 
+2.26.2
+
