@@ -1,0 +1,59 @@
+From ad4b14e10b5b4f00d5072d7489acaa3fff0d07ac Mon Sep 17 00:00:00 2001
+From: John Thiltges <jthiltges2@unl.edu>
+Date: Tue, 18 May 2021 15:23:22 -0500
+Subject: [PATCH] Use thread-safe timegm()
+
+---
+ configure.ac                                              | 2 +-
+ .../gsi_handling/lcmaps_voms_attributes.c                 | 8 ++++++++
+ 2 files changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/configure.ac b/configure.ac
+index 7f4e626..613f295 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -88,7 +88,7 @@ AC_CHECK_HEADERS([dlfcn.h stdlib.h string.h syslog.h unistd.h])
+ AC_TYPE_SIZE_T
+ 
+ # Checks for library functions.
+-AC_CHECK_FUNCS([malloc realloc setenv strchr strcspn strdup strerror strpbrk strspn strtol getgrouplist])
++AC_CHECK_FUNCS([malloc realloc setenv strchr strcspn strdup strerror strpbrk strspn strtol getgrouplist timegm])
+ 
+ 
+ # Building headers mode
+diff --git a/src/grid_credential_handling/gsi_handling/lcmaps_voms_attributes.c b/src/grid_credential_handling/gsi_handling/lcmaps_voms_attributes.c
+index f5893ea..b1a562a 100644
+--- a/src/grid_credential_handling/gsi_handling/lcmaps_voms_attributes.c
++++ b/src/grid_credential_handling/gsi_handling/lcmaps_voms_attributes.c
+@@ -48,6 +48,9 @@
+ */
+ 
+ #define _XOPEN_SOURCE	600
++/* Needed for timegm */
++#define _SVID_SOURCE
++#define _DEFAULT_SOURCE
+ 
+ /*****************************************************************************
+                             Include header files
+@@ -984,6 +987,10 @@ static time_t asn1TimeToTimeT(ASN1_TIME* asn1time)  {
+    --(time_tm.tm_mon);
+ 
+    /* Convert to time_t: make sure TZ is undefined */
++#ifdef HAVE_TIMEGM
++   /* Use thread-safe function if possible */
++   return timegm(&time_tm);
++#else /* HAVE_TIMEGM */
+    tz = getenv("TZ");
+    setenv("TZ", "", 1);
+    tzset();
+@@ -995,6 +1002,7 @@ static time_t asn1TimeToTimeT(ASN1_TIME* asn1time)  {
+    tzset();
+ 
+    return mytime;
++#endif /* HAVE_TIMEGM */
+ }
+ 
+ 
+-- 
+2.30.2
+

@@ -18,7 +18,7 @@
 Summary: Grid (X.509) and VOMS credentials to local account mapping service
 Name: lcmaps
 Version: 1.6.6
-Release: 1.14%{?dist}
+Release: 1.14.20210518.1%{?dist}
 License: ASL 2.0
 URL: http://wiki.nikhef.nl/grid/LCMAPS
 Source0: http://software.nikhef.nl/security/lcmaps/lcmaps-%{version}.tar.gz
@@ -28,6 +28,7 @@ Source3: ban-voms-mapfile
 Source4: lcmaps.db.gridmap
 Source6: lcmaps.db.vomsmap
 Source7: lcmaps.db.vomsmap.allfqans
+Patch0: 0001-Use-thread-safe-timegm.patch
 BuildRequires: globus-common-devel
 BuildRequires: globus-gssapi-gsi-devel
 BuildRequires: globus-gss-assist-devel
@@ -35,6 +36,7 @@ BuildRequires: globus-gsi-credential-devel
 BuildRequires: globus-gsi-proxy-core-devel
 BuildRequires: voms-devel
 BuildRequires: flex, bison
+BuildRequires: autoconf, automake
 
 # these should be in a metapackage instead of here
 Requires: lcmaps-plugins-basic
@@ -144,6 +146,9 @@ Template files for various auth methods for lcmaps.db.
 
 %prep
 %setup -q
+
+%patch0 -p1
+autoreconf
 
 %build
 
@@ -314,6 +319,9 @@ cp %{SOURCE4} %{SOURCE6} %{SOURCE7} ${RPM_BUILD_ROOT}%{_datadir}/lcmaps/template
 
 
 %changelog
+* Tue May 18 2021 John Thiltges <jthiltges@unl.edu> - 1.6.6-1.14.20210518.1.hcc
+- Use thread-safe timegm()
+
 * Mon May 26 2020 Edgar Fajardo <emfajard@ucsd.edu> 1.6.6-1.14
 - Undo the removal
 
