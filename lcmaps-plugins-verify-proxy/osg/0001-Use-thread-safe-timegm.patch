@@ -1,0 +1,61 @@
+From 6806a05f1dd0380d074fce258beed17203f5c401 Mon Sep 17 00:00:00 2001
+From: John Thiltges <jthiltges2@unl.edu>
+Date: Tue, 18 May 2021 14:17:03 -0500
+Subject: [PATCH] Use thread-safe timegm()
+
+---
+ configure.ac                                        |  2 +-
+ src/verify-proxy/verify-lib/src/verify_x509_utils.c | 10 ++++++++++
+ 2 files changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/configure.ac b/configure.ac
+index a377477..89dd193 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -65,7 +65,7 @@ AC_TYPE_SIZE_T
+ # Checks for library functions.
+ AC_FUNC_MALLOC
+ AC_FUNC_MKTIME
+-AC_CHECK_FUNCS([setenv strdup strerror strncasecmp strtol])
++AC_CHECK_FUNCS([setenv strdup strerror strncasecmp strtol timegm])
+ 
+ dnl allow the setting of a different path for the plug-ins
+ dnl Makefiles should set the plugindir to $MODULEDIR.
+diff --git a/src/verify-proxy/verify-lib/src/verify_x509_utils.c b/src/verify-proxy/verify-lib/src/verify_x509_utils.c
+index ebb6199..bf21b45 100644
+--- a/src/verify-proxy/verify-lib/src/verify_x509_utils.c
++++ b/src/verify-proxy/verify-lib/src/verify_x509_utils.c
+@@ -26,6 +26,11 @@
+ 
+ /* Needed for (un)setenv */
+ #define _XOPEN_SOURCE	600
++/* Needed for timegm */
++#define _SVID_SOURCE
++#define _DEFAULT_SOURCE
++
++#include "lcmaps_verify_proxy_config.h"
+ 
+ #include <stdio.h>
+ #include <stdlib.h>
+@@ -387,6 +392,10 @@ finalize:
+  */
+ static time_t my_timegm(struct tm *tm)
+ {
++#ifdef HAVE_TIMEGM
++   /* Use thread-safe function if possible */
++   return timegm(tm);
++#else /* HAVE_TIMEGM */
+    time_t ret;
+    char *tz;
+ 
+@@ -401,6 +410,7 @@ static time_t my_timegm(struct tm *tm)
+    tzset();
+ 
+    return ret;
++#endif /* HAVE_TIMEGM */
+ }
+ 
+ /**
+-- 
+2.30.2
+

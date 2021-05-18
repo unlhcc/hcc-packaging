@@ -1,11 +1,13 @@
 Summary: Proxy verification plugin for LCMAPS
 Name: lcmaps-plugins-verify-proxy
 Version: 1.5.11
-Release: 1.1%{?dist}
+Release: 1.1.20210518.1%{?dist}
 License: ASL 2.0
 URL: http://wiki.nikhef.nl/grid/Site_Access_Control
 Source0: http://software.nikhef.nl/security/%{name}/%{name}-%{version}.tar.gz
+Patch0: 0001-Use-thread-safe-timegm.patch
 BuildRequires: lcmaps-devel, openssl-devel
+BuildRequires: autoconf, automake
 Requires: lcmaps%{?_isa} >= 1.5.0-1
 # BuildRoot is still required for EPEL5
 
@@ -19,6 +21,9 @@ This package contains the Verify Proxy plugin and a command-line tool.
 
 %prep
 %setup -q
+
+%patch0 -p1
+autoreconf
 
 %build
 
@@ -62,6 +67,9 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man8/lcmaps_verify_proxy.mod.8*
 
 %changelog
+* Tue May 18 2021 John Thiltges <jthiltges@unl.edu> - 1.5.11-1.1.20210518.1.hcc
+- Use thread-safe timegm()
+
 * Tue May 22 2018 Dave Dykstra <dwd@fnal.gov>> - 1.5.11-1.1
 - Updated to upstream 1.5.11-1.1, removed patch for unloading
     OpenSSL error strings (SOFTWARE-3282).
