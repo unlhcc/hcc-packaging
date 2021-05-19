@@ -18,17 +18,16 @@
 Summary: Grid (X.509) and VOMS credentials to local account mapping service
 Name: lcmaps
 Version: 1.6.6
-Release: 1.4%{?dist}
+Release: 1.14%{?dist}
 License: ASL 2.0
-Group: System Environment/Libraries
 URL: http://wiki.nikhef.nl/grid/LCMAPS
 Source0: http://software.nikhef.nl/security/lcmaps/lcmaps-%{version}.tar.gz
 Source1: lcmaps.db
 Source2: ban-mapfile
 Source3: ban-voms-mapfile
 Source4: lcmaps.db.gridmap
-Source5: lcmaps.db.gums
 Source6: lcmaps.db.vomsmap
+Source7: lcmaps.db.vomsmap.allfqans
 BuildRequires: globus-common-devel
 BuildRequires: globus-gssapi-gsi-devel
 BuildRequires: globus-gss-assist-devel
@@ -38,15 +37,9 @@ BuildRequires: voms-devel
 BuildRequires: flex, bison
 
 # these should be in a metapackage instead of here
-Requires: lcmaps-plugins-gums-client
 Requires: lcmaps-plugins-basic
 Requires: lcmaps-plugins-verify-proxy >= 1.5.9-1.1
 Requires: lcmaps-plugins-voms >= 1.7.1-1.1
-
-# these two conflicts are because older versions of these packages depend
-#  on lcmaps.db policy osg_default which has been removed
-Conflicts: globus-gatekeeper < 9.6-1.9
-Conflicts: globus-gridftp-server-progs < 6.14-3
 
 %description
 The Local Centre MAPping Service (LCMAPS) is a security middleware
@@ -61,7 +54,6 @@ see the lcmaps-interface package.
 
 
 %package without-gsi
-Group: System Environment/Libraries
 Summary: Grid mapping service without GSI
 
 %description without-gsi
@@ -79,7 +71,6 @@ This version is built without support for the GSI protocol.
 
 
 %package devel
-Group: Development/Libraries
 Summary: LCMAPS plug-in API header files
 Requires: %{name}%{?_isa} = %{version}-%{release}
 Requires: %{name}-common-devel%{?_isa} = %{version}-%{release}
@@ -108,7 +99,6 @@ against the LCMAPS library.
 
 
 %package common-devel
-Group: Development/Libraries
 Summary: LCMAPS plug-in API header files
 Provides: %{name}-basic-interface = %{version}-%{release}
 Obsoletes: %{name}-basic-interface < 1.6.1-4
@@ -124,7 +114,6 @@ for client applications.
 
 
 %package without-gsi-devel
-Group: Development/Libraries
 Summary: LCMAPS development libraries
 Requires: %{name}-without-gsi%{?_isa} = %{version}-%{release}
 Requires: %{name}-common-devel%{?_isa} = %{version}-%{release}
@@ -213,7 +202,8 @@ rm -rf ${RPM_BUILD_ROOT}%{_docdir}
 
 # install templates
 mkdir -p ${RPM_BUILD_ROOT}%{_datadir}/lcmaps/templates
-cp %{SOURCE4} %{SOURCE5} %{SOURCE6} ${RPM_BUILD_ROOT}%{_datadir}/lcmaps/templates/
+cp %{SOURCE4} %{SOURCE6} %{SOURCE7} ${RPM_BUILD_ROOT}%{_datadir}/lcmaps/templates/
+
 
 %post -p /sbin/ldconfig
 
@@ -319,11 +309,38 @@ cp %{SOURCE4} %{SOURCE5} %{SOURCE6} ${RPM_BUILD_ROOT}%{_datadir}/lcmaps/template
 
 %files db-templates
 %{_datadir}/lcmaps/templates/lcmaps.db.gridmap
-%{_datadir}/lcmaps/templates/lcmaps.db.gums
 %{_datadir}/lcmaps/templates/lcmaps.db.vomsmap
+%{_datadir}/lcmaps/templates/lcmaps.db.vomsmap.allfqans
 
 
 %changelog
+* Mon May 26 2020 Edgar Fajardo <emfajard@ucsd.edu> 1.6.6-1.14
+- Undo the removal
+
+* Mon May 26 2020 Edgar Fajardo <emfajard@ucsd.edu> 1.6.6-1.13
+- Remove the dependency on lcmaps-plugins
+
+* Wed Nov 27 2019 Mátyás Selmeci <matyas@cs.wisc.edu> 1.6.6-1.12
+- Use vomsmap auth as default (SOFTWARE-3927)
+
+* Mon Aug 12 2019 Diego Davila <didavila@ucsd.edu> 1.6.6-1.10
+- Drop GUMS/gLexec support (SOFTWARE-3776)
+
+* Thu Dec 07 2017 Mátyás Selmeci <matyas@cs.wisc.edu> 1.6.6-1.9
+- Drop EL5 support
+
+* Tue Oct 17 2017 Mátyás Selmeci <matyas@cs.wisc.edu> 1.6.6-1.8
+- Add vomsmap template with -all-fqans (SOFTWARE-2932)
+
+* Thu Oct 12 2017 Mátyás Selmeci <matyas@cs.wisc.edu> 1.6.6-1.7
+- Add comments about -all-fqans to lcmaps.db templates (SOFTWARE-2932)
+
+* Tue May 23 2017 Brian Lin <blin@cs.wisc.edu> 1.6.6-1.6
+- Drop LCMAPS GUMS client plugins dependency (SOFTWARE-2681)
+
+* Fri May 19 2017 Brian Lin <blin@cs.wisc.edu> 1.6.6-1.5
+- Drop GRAM conflicts (SOFTWARE-2681)
+
 * Mon Apr 24 2017 Mátyás Selmeci <matyas@cs.wisc.edu> 1.6.6-1.4.osgup
 - Drop glexec templates (SOFTWARE-2692)
 
