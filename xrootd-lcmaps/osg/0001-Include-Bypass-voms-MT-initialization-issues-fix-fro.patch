@@ -1,0 +1,26 @@
+From f9a514cb108d49c6b96f8c39a131686ad1710d85 Mon Sep 17 00:00:00 2001
+From: John Thiltges <jthiltges2@unl.edu>
+Date: Thu, 27 May 2021 15:47:20 -0500
+Subject: [PATCH] Include "Bypass voms MT initialization issues" fix from
+ xrootd
+
+https://github.com/xrootd/xrootd/commit/d9e9820b329ffb6e33ac8837bf8a6cadc1beee25
+---
+ src/XrdLcmapsConfig.cc | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/XrdLcmapsConfig.cc b/src/XrdLcmapsConfig.cc
+index f805d6f..c55a2e3 100644
+--- a/src/XrdLcmapsConfig.cc
++++ b/src/XrdLcmapsConfig.cc
+@@ -189,6 +189,7 @@ int XrdSecgsiAuthzConfig(const char *cfg)
+       PRINT(inf_pfx << " LCMAPS: no-authz option is set; LCMAPS will not be invoked");
+    }
+ 
++   vomsdata vomsInit; // This forces libssl initialization at load time
+ 
+    if (argv != NULL) {
+       for (int i=0; i<argc+1; i++) {
+-- 
+2.30.2
+
