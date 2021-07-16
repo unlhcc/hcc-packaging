@@ -8,7 +8,7 @@
 # gzip check-mk-agent-${VER}.tar
 
 Name:       check-mk-agent
-Version:    1.6.0p13
+Version:    1.6.0p24
 Release:    1%{?dist}
 Summary:    The check-mk's Agent
 License:    GPLv2 and GPLv3
@@ -111,6 +111,9 @@ install -m 644 cfg_examples/systemd/check_mk.socket   %{buildroot}%{_unitdir}/ch
 %config(noreplace) %{_sysconfdir}/check-mk-agent
 
 %changelog
+* Fri Jul 17 2021 John Thiltges <jthiltges@unl.edu> - 1.6.0p24-1
+- New upstream release
+
 * Tue Jul 07 2020 John Thiltges <jthiltges@unl.edu> - 1.6.0p13-1
 - New upstream release
 
