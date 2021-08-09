@@ -1,17 +1,17 @@
 Name: xrootd-hdfs
-Version: 2.1.8
-Release: 1.1.20201116.1%{?dist}
+Version: 2.2.0
+Release: 1.1.20210809.1%{?dist}
 Summary: HDFS plugin for xrootd
 
 Group: System Environment/Development
 License: BSD
 URL: https://github.com/bbockelm/xrootd-hdfs
 Source0: %{name}-%{version}.tar.gz
-Patch0: link2serverlib.patch
-Patch1: 0001-Convert-LFN-to-PFN-when-generating-checksum-file-pat.patch
+Patch0: SOFTWARE-4645-usernames-with-tokens.patch
+Patch1: 0001-Always-return-inode-value-of-1.patch
 
 %define xrootd_current_major 5
-%define xrootd_current_minor 0
+%define xrootd_current_minor 1
 %define xrootd_next_major 6
 
 BuildRequires: xrootd-server-devel >= 1:%{xrootd_current_major}
@@ -79,18 +79,23 @@ rm $RPM_BUILD_ROOT%{_bindir}/xrootd_hdfs_envcheck
 %{_includedir}/XrdHdfs.hh
 
 %changelog
-* Mon Nov 16 2020 John Thiltges <jthiltges@unl.edu> - 2.1.81.1.20201116.1
-- Convert LFN to PFN before generating checksum file path
+* Mon Aug 09 2021 John Thiltges <jthiltges@unl.edu> - 2.2.0-1.1.20210809.1
+- Set inode to constant (1) so that xrootd flags files as online
+
+* Tue Jun 01 2021 Mátyás Selmeci <matyas@cs.wisc.edu> - 2.2.0-1.1
+- Add SOFTWARE-4645-usernames-with-tokens.patch to fix finding the right
+  username with token auth (SOFTWARE-4645, #36)
+
+* Thu Mar 11 2021 Carl Edquist <edquist@cs.wisc.edu> - 2.2.0-1
+- Build against xrootd 5 (SOFTWARE-3923, #32)
+- Only write checksum file if hdfsCloseFile() was successful (#34)
+- Add support for new extended attribute API for XrdSecEntity (#35)
 
 * Wed Sep 02 2020 Carl Edquist <edquist@cs.wisc.edu> - 2.1.8-1
 - Load versioned libXrdHdfsReal .so name (SOFTWARE-4245)
 
 * Tue Jul 14 2020 Diego Davila <didavila@ucsd.edu> - 2.1.7-9
 - updating XRootD adding minor version to requirements (SOFTWARE-4137)
-
-* Thu Jul 09 2020 Diego Davila <didavila@ucsd.edu> - 2.1.7-9
-- building against xrootd-5.0.0-1 (SOFTWARE-3923)
-- updating xrootd_current_major and xrootd_next_major to 5 and 6 respectively
 
 * Fri Jun 26 2020 Diego Davila <didavila@ucsd.edu> - 2.1.7-8
 - updating XRootD requirements to only the major version (SOFTWARE-4137)
@@ -101,10 +106,6 @@ rm $RPM_BUILD_ROOT%{_bindir}/xrootd_hdfs_envcheck
 
 * Fri Apr 24 2020 Edgar Fajardo <emfajard@ucsd.edu> - 2.1.7-6
 - Rebuild for xrootd 4.12 (SOFTWARE-4063)
-
-* Tue Mar 31 2020 Diego Davila <didavila@ucsd.edu> - 2.1.7-3.1
-- Rebuild for xrootd 5.0.0-rc2 (SOFTWARE-3923)
-- adding patch: link2serverlib to link with the right library
 
 * Mon Oct 21 2019 Carl Edquist <edquist@cs.wisc.edu> - 2.1.7-2
 - Rebuild for xrootd 4.11 (SOFTWARE-3830)

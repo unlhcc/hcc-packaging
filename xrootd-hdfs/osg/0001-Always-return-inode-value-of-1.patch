@@ -1,0 +1,44 @@
+From 74a82cfdced4185168b70929b5eb732024bf857c Mon Sep 17 00:00:00 2001
+From: John Thiltges <jthiltges2@unl.edu>
+Date: Mon, 9 Aug 2021 12:42:09 -0500
+Subject: [PATCH] Always return inode value of 1
+
+XRootD assumes offline status when both device and inode are zero
+---
+ src/XrdHdfs.cc | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/src/XrdHdfs.cc b/src/XrdHdfs.cc
+index 1ca352b..3b7a412 100644
+--- a/src/XrdHdfs.cc
++++ b/src/XrdHdfs.cc
+@@ -272,7 +272,7 @@ int XrdHdfsDirectory::Readdir(char * buff, int blen)
+       m_stat_buf->st_atime    = fileInfo.mLastMod;
+       m_stat_buf->st_ctime    = fileInfo.mLastMod;
+       m_stat_buf->st_dev      = 0;
+-      m_stat_buf->st_ino      = 0;
++      m_stat_buf->st_ino      = 1; // XRootD assumes offline status when both dev and ino are zero
+    }
+ 
+    return XrdOssOK;
+@@ -790,7 +790,7 @@ int XrdHdfsFile::Fstat(struct stat     *buf)         // Out
+    buf->st_atime    = fileInfo->mLastMod;
+    buf->st_ctime    = fileInfo->mLastMod;
+    buf->st_dev      = 0;
+-   buf->st_ino      = 0;
++   buf->st_ino      = 1; // XRootD assumes offline status when both dev and ino are zero
+ 
+    hdfsFreeFileInfo(fileInfo, 1);
+ 
+@@ -960,7 +960,7 @@ int XrdHdfsSys::Stat(const  char    *path,    // In
+    buf->st_atime    = fileInfo->mLastMod;
+    buf->st_ctime    = fileInfo->mLastMod;
+    buf->st_dev      = 0;
+-   buf->st_ino      = 0;
++   buf->st_ino      = 1; // XRootD assumes offline status when both dev and ino are zero
+ 
+    hdfsFreeFileInfo(fileInfo, 1);
+ 
+-- 
+2.31.1
+
