@@ -1,3 +1,6 @@
+# HCC uses OSG additions
+%define osg 1
+
 # OSG additions
 %if 0%{?osg:1}%{!?osg:0}
     %global _with_compat 1
@@ -71,7 +74,7 @@
 Name:      xrootd
 Epoch:     1
 Version:   5.4.0
-Release:   1%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
+Release:   1.20211213.1%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
 Summary:   Extended ROOT file server
 Group:     System Environment/Daemons
 License:   LGPLv3+
@@ -87,6 +90,8 @@ Source0:   xrootd.tar.gz
 %if 0%{?_with_compat}
 Source1:   xrootd-%{compat_version}.tar.gz
 %endif
+
+Patch0: 0001-XrdSciTokens-Modifying-std-map-invalidates-iterator.patch
 
 BuildRoot: %{_tmppath}/%{name}-root
 
@@ -525,6 +530,8 @@ This package contains compatibility binaries for xrootd 4 servers.
 %endif
 
 %setup -c -n xrootd
+
+%patch0 -p1
 
 %build
 
