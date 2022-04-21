@@ -9,7 +9,8 @@ License: BSD
 URL: https://github.com/opensciencegrid/xrootd-multiuser
 # Generated from:
 # git archive v%{version} --prefix=xrootd-multiuser-%{version}/ | gzip -7 > ~/rpmbuild/SOURCES/xrootd-multiuser-%{version}.tar.gz
-Source0: %{name}-%{version}.tar.gz
+#Source0: %{name}-%{version}.tar.gz
+Source0: %{name}-master.tar.gz
 
 %define xrootd_current_major 5
 %define xrootd_current_minor 2
