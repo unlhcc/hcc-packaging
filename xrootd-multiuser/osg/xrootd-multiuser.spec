@@ -11,6 +11,7 @@ URL: https://github.com/opensciencegrid/xrootd-multiuser
 # git archive v%{version} --prefix=xrootd-multiuser-%{version}/ | gzip -7 > ~/rpmbuild/SOURCES/xrootd-multiuser-%{version}.tar.gz
 #Source0: %{name}-%{version}.tar.gz
 Source0: %{name}-master.tar.gz
+Patch0: 0001-Reorder-variables-to-address-compiler-warning.patch
 
 %define xrootd_current_major 5
 %define xrootd_current_minor 2
@@ -39,6 +40,7 @@ Requires: xrootd-server <  1:%{xrootd_next_major}.0.0-1
 %prep
 #%setup -q
 %setup -n %{name}-master -q
+%patch0 -p1
 
 %build
 %cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo .
