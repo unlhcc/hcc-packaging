@@ -37,7 +37,8 @@ Requires: xrootd-server <  1:%{xrootd_next_major}.0.0-1
 %{summary}
 
 %prep
-%setup -q
+#%setup -q
+%setup -n %{name}-master -q
 
 %build
 %cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo .
