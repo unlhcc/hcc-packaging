@@ -1,0 +1,54 @@
+From 90ed8fa56355fece3dfe178df2120f44f457771b Mon Sep 17 00:00:00 2001
+From: John Thiltges <jthiltges2@unl.edu>
+Date: Fri, 22 Apr 2022 10:01:30 -0500
+Subject: [PATCH] [XrdCrypto] Modify XrdCryptosslNameOneLine to allow commas in
+ DNs
+
+---
+ src/XrdCrypto/XrdCryptosslAux.cc          | 4 ++--
+ src/XrdCrypto/openssl3/XrdCryptosslAux.cc | 4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/src/XrdCrypto/XrdCryptosslAux.cc b/src/XrdCrypto/XrdCryptosslAux.cc
+index e21c2c133..544855615 100644
+--- a/src/XrdCrypto/XrdCryptosslAux.cc
++++ b/src/XrdCrypto/XrdCryptosslAux.cc
+@@ -770,13 +770,13 @@ void XrdCryptosslNameOneLine(X509_NAME *nm, XrdOucString &s)
+ 
+ #ifndef USEX509NAMEONELINE
+    BIO *mbio = BIO_new(BIO_s_mem());
+-   X509_NAME_print_ex(mbio, nm, 0, XN_FLAG_COMPAT);
++   X509_NAME_print_ex(mbio, nm, 0, XN_FLAG_SEP_MULTILINE);
+    char *data = 0;
+    long len = BIO_get_mem_data(mbio, &data);
+    s = "/";
+    s.insert(data, 1, len);
+    BIO_free(mbio);
+-   s.replace(", ", "/");
++   s.replace("\n", "/");
+ #else
+    char *xn = X509_NAME_oneline(nm, 0, 0);
+    s = xn;
+diff --git a/src/XrdCrypto/openssl3/XrdCryptosslAux.cc b/src/XrdCrypto/openssl3/XrdCryptosslAux.cc
+index 86c78e6a8..eebcd181f 100644
+--- a/src/XrdCrypto/openssl3/XrdCryptosslAux.cc
++++ b/src/XrdCrypto/openssl3/XrdCryptosslAux.cc
+@@ -762,13 +762,13 @@ void XrdCryptosslNameOneLine(X509_NAME *nm, XrdOucString &s)
+ 
+ #ifndef USEX509NAMEONELINE
+    BIO *mbio = BIO_new(BIO_s_mem());
+-   X509_NAME_print_ex(mbio, nm, 0, XN_FLAG_COMPAT);
++   X509_NAME_print_ex(mbio, nm, 0, XN_FLAG_SEP_MULTILINE);
+    char *data = 0;
+    long len = BIO_get_mem_data(mbio, &data);
+    s = "/";
+    s.insert(data, 1, len);
+    BIO_free(mbio);
+-   s.replace(", ", "/");
++   s.replace("\n", "/");
+ #else
+    char *xn = X509_NAME_oneline(nm, 0, 0);
+    s = xn;
+-- 
+2.31.1
+

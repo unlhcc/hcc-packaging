@@ -73,8 +73,8 @@
 #-------------------------------------------------------------------------------
 Name:      xrootd
 Epoch:     1
-Version:   5.4.0
-Release:   1.20211213.1%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
+Version:   5.4.2
+Release:   1.20220502.1%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
 Summary:   Extended ROOT file server
 Group:     System Environment/Daemons
 License:   LGPLv3+
@@ -91,7 +91,7 @@ Source0:   xrootd.tar.gz
 Source1:   xrootd-%{compat_version}.tar.gz
 %endif
 
-Patch0: 0001-XrdSciTokens-Modifying-std-map-invalidates-iterator.patch
+Patch0: 0001-XrdCrypto-Modify-XrdCryptosslNameOneLine-to-allow-co.patch
 
 BuildRoot: %{_tmppath}/%{name}-root
 
@@ -117,14 +117,19 @@ BuildRequires: libmacaroons-devel
 BuildRequires: json-c-devel
 
 %if %{python2only}
+BuildRequires: python2-pip
 BuildRequires: python2-devel
+BuildRequires: python2-setuptools
 %endif
 %if %{python2and3}
 BuildRequires: python2-devel
+BuildRequires: python2-setuptools
 BuildRequires: python%{python3_pkgversion}-devel
+BuildRequires: python%{python3_pkgversion}-setuptools
 %endif
 %if %{python3only}
 BuildRequires: python%{python3_pkgversion}-devel
+BuildRequires: python%{python3_pkgversion}-setuptools
 %endif
 
 BuildRequires: openssl-devel
@@ -665,7 +670,6 @@ popd
 pushd xrootd
 pushd  build
 make install DESTDIR=$RPM_BUILD_ROOT
-cat PYTHON_INSTALLED | sed -e "s|$RPM_BUILD_ROOT||g" > PYTHON_INSTALLED_FILES
 popd
 
 # configuration stuff
@@ -1045,13 +1049,15 @@ fi
 %dir %{_sysconfdir}/xrootd
 
 %if %{python2only}
-%files -n python2-%{name} -f xrootd/build/PYTHON_INSTALLED_FILES
+%files -n python2-%{name}
 %defattr(-,root,root,-)
+%{python2_sitearch}/*
 %endif
 
 %if %{python2and3}
-%files -n python2-%{name} -f xrootd/build/PYTHON_INSTALLED_FILES
+%files -n python2-%{name}
 %defattr(-,root,root,-)
+%{python2_sitearch}/*
 
 %files -n python%{python3_pkgversion}-%{name}
 %defattr(-,root,root,-)
@@ -1059,8 +1065,9 @@ fi
 %endif
 
 %if %{python3only}
-%files -n python%{python3_pkgversion}-%{name} -f xrootd/build/PYTHON_INSTALLED_FILES
+%files -n python%{python3_pkgversion}-%{name}
 %defattr(-,root,root,-)
+%{python3_sitearch}/*
 %endif
 
 %files voms
@@ -1172,6 +1179,29 @@ fi
 # Changelog
 #-------------------------------------------------------------------------------
 %changelog
+* Mon May 02 2022 John Thiltges <jthiltges@unl.edu> - 5.4.2-1.20220502.1
+- Add fix for DNs with commas
+  https://github.com/xrootd/xrootd/pull/1688
+
+* Fri Mar 11 2022 Brian Lin <blin@cs.wisc.edu> - 5.4.2-1.1
+- Move VOMS mapfile support to the source (SOFTWARE-4870)
+- Fix HTTP DN hashing
+- Add new throttling config for max open files and active connections
+
+* Thu Mar 03 2022 Mátyás Selmeci <matyas@cs.wisc.edu> - 5.4.2-1
+- Update to 5.4.2 and merge OSG changes (SOFTWARE-5072, SOFTWARE-5073)
+- Update SOFTWARE-4870.voms-mapfile.patch
+
+* Wed Feb 23 2022 Mátyás Selmeci <matyas@cs.wisc.edu> - 5.4.1-1
+- Update to 5.4.1 and merge OSG changes (SOFTWARE-4998, SOFTWARE-4999)
+
+* Fri Feb 18 2022 Mátyás Selmeci <matyas@cs.wisc.edu> - 5.4.1-0.rc2.osg
+- Update to 5.4.1rc2 and merge OSG changes (SOFTWARE-4998, SOFTWARE-4999)
+- Update SOFTWARE-4870.voms-mapfile.patch
+
+* Tue Dec 14 2021 Brian Lin <blin@cs.wisc.edu> - 5.4.0-1.1
+- Add the ability to read from a voms-mapfile (SOFTWARE-4870)
+
 * Fri Dec 10 2021 Mátyás Selmeci <matyas@cs.wisc.edu> - 5.4.0-1
 - Update to 5.4.0 and merge OSG changes (SOFTWARE-4898, SOFTWARE-4899)
 
