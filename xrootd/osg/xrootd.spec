@@ -536,7 +536,9 @@ This package contains compatibility binaries for xrootd 4 servers.
 
 %setup -c -n xrootd
 
+pushd xrootd
 %patch0 -p1
+popd
 
 %build
 
