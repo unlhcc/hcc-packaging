@@ -1,13 +1,12 @@
 Summary: OASIS server package
 Name: oasis-server
-Version: 3.6
-Release: 1.20220721.1%{?dist} 
+Version: 3.7
+Release: 1.20220728.1%{?dist}
 Source0: %{name}-%{version}.tar.gz
 License: Apache 2.0
 Group: Development/Libraries
 BuildArch: noarch
 Url: http://www.opensciencegrid.org
-Patch0: oasis-server-el8.patch
 
 Obsoletes: oasis-goc
 
@@ -16,7 +15,6 @@ This package contains OASIS server software for OSG Operations
 
 %prep
 %setup -q
-%patch0 -p1
 
 %install
 rm -rf $RPM_BUILD_ROOT
@@ -135,8 +133,8 @@ This package contains files for oasis-login.opensciencegrid.org
 
 
 %changelog
-* Thu Jul 21 2022 John Thiltges <jthiltges@unl.edu> - 3.6-1.20220721.1
-- EL8 compatibility patches
+* Thu Jul 28 2022 John Thiltges <jthiltges2@unl.edu> - 3.7-1
+- Convert python 2 to 3 and make EL8 compatible
 
 * Wed Apr  6 2022 Dave Dykstra <dwd@fnal.gov> - 3.6-1
 - Require cvmfs 2.9.2
