@@ -1142,7 +1142,7 @@ fi
 # Changelog
 #-------------------------------------------------------------------------------
 %changelog
-* Mon Aug 22 2022 John Thiltges <jthiltges2@unl.edu - 5.5.0-0.rc3.20220822.1
+* Mon Aug 22 2022 John Thiltges <jthiltges2@unl.edu> - 5.5.0-0.rc3.20220822.1
 - Add github PR#1767 to fix scitokens username handling on EL8
 
 * Thu Aug 18 2022 Mátyás Selmeci <matyas@cs.wisc.edu> - 5.5.0-0.rc3.1
