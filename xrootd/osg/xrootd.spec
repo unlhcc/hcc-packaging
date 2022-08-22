@@ -71,7 +71,7 @@
 Name:      xrootd
 Epoch:     1
 Version:   5.5.0
-Release:   0.rc3.20220822.1%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
+Release:   0.rc3.20220822.2%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
 Summary:   Extended ROOT file server
 Group:     System Environment/Daemons
 License:   LGPLv3+
@@ -89,6 +89,7 @@ Source1:   xrootd-%{compat_version}.tar.gz
 %endif
 
 Patch0: pr-1767.patch
+Patch1: pr-1765.patch
 
 BuildRoot: %{_tmppath}/%{name}-root
 
@@ -500,6 +501,7 @@ This package contains compatibility binaries for xrootd 4 servers.
 
 pushd xrootd
 %patch0 -p1
+%patch1 -p1
 popd
 
 %build
@@ -1142,8 +1144,9 @@ fi
 # Changelog
 #-------------------------------------------------------------------------------
 %changelog
-* Mon Aug 22 2022 John Thiltges <jthiltges2@unl.edu> - 5.5.0-0.rc3.20220822.1
+* Mon Aug 22 2022 John Thiltges <jthiltges2@unl.edu> - 5.5.0-0.rc3.20220822.2
 - Add github PR#1767 to fix scitokens username handling on EL8
+- Add github PR#1765 to return permission denied when overwrites are not allowed
 
 * Thu Aug 18 2022 Mátyás Selmeci <matyas@cs.wisc.edu> - 5.5.0-0.rc3.1
 - Build from 5.5.0-rc3 (SOFTWARE-5275)
