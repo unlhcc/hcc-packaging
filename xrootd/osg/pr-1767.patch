@@ -1,0 +1,40 @@
+From 03e1ee9ce15953bae6431c3153c5bcf2d1113e3f Mon Sep 17 00:00:00 2001
+From: Brian Bockelman <bbockelman@morgridge.org>
+Date: Mon, 22 Aug 2022 09:47:23 -0500
+Subject: [PATCH] Fix self-move.
+
+In what appears to be a refactor gone wrong, the `username` variable
+is moved to itself.  On RHEL7's compiler, this appears to be a no-op.
+in RHEL8 (probably correctly) it clears out the string, un-setting
+the username completely.
+---
+ src/XrdSciTokens/XrdSciTokensAccess.cc | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/src/XrdSciTokens/XrdSciTokensAccess.cc b/src/XrdSciTokens/XrdSciTokensAccess.cc
+index b1d38030c3b..93a72fe2460 100644
+--- a/src/XrdSciTokens/XrdSciTokensAccess.cc
++++ b/src/XrdSciTokens/XrdSciTokensAccess.cc
+@@ -776,10 +776,11 @@ class XrdAccSciTokens : public XrdAccAuthorize, public XrdSciTokensHelper
+         token_subject = std::string(value);
+         free(value);
+ 
++        std::string tmp_username;
+         if (config.m_map_subject) {
+-            username = token_subject;
++            tmp_username = token_subject;
+         } else {
+-            username = config.m_default_user;
++            tmp_username = config.m_default_user;
+         }
+ 
+         for (auto rule : config.m_map_rules) {
+@@ -856,7 +857,7 @@ class XrdAccSciTokens : public XrdAccAuthorize, public XrdSciTokensHelper
+ 
+         cache_expiry = expiry;
+         rules = std::move(xrd_rules);
+-        username = std::move(username);
++        username = std::move(tmp_username);
+         issuer = std::move(token_issuer);
+         groups = std::move(groups_parsed);
+ 
