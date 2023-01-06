@@ -1,0 +1,56 @@
+From f6133b9f36bb187c02d5aed1436c4acb611d8ad6 Mon Sep 17 00:00:00 2001
+From: John Thiltges <jthiltges2@unl.edu>
+Date: Wed, 30 Nov 2022 15:16:05 -0600
+Subject: [PATCH] Avoid segfault for anonymous clients with macaroons
+
+Don't dereference a null sentryPtr
+---
+ src/UserSentry.hh | 10 ++++++++--
+ src/multiuser.cpp |  3 ++-
+ 2 files changed, 10 insertions(+), 3 deletions(-)
+
+diff --git a/src/UserSentry.hh b/src/UserSentry.hh
+index 8158674..8c0786c 100644
+--- a/src/UserSentry.hh
++++ b/src/UserSentry.hh
+@@ -74,8 +74,8 @@ public:
+         std::string username;
+         auto got_token = client->eaAPI->Get("request.name", username);
+         if (!got_token && (!client->name || !client->name[0])) {
+-            log.Emsg("UserSentry", "Anonymous client; no user set, cannot change FS UIDs");
+-            m_is_anonymous = true;
++            // Anonymous client; no user set
++            this->Init("", log);
+             return;
+         }
+ 
+@@ -108,6 +108,12 @@ public:
+ 
+         int retval;
+ 
++        if (username.empty()) {
++            log.Emsg("UserSentry", "Anonymous client; no user set, cannot change FS UIDs");
++            m_is_anonymous = true;
++            return;
++        }
++
+         do {
+             retval = getpwnam_r(username.c_str(), &pwd, &buf[0], buflen, &result);
+             if ((result == nullptr) && (retval == ERANGE)) {
+diff --git a/src/multiuser.cpp b/src/multiuser.cpp
+index 5b30204..50cebf1 100644
+--- a/src/multiuser.cpp
++++ b/src/multiuser.cpp
+@@ -246,7 +246,8 @@ public:
+                 if (username) {
+                     return new UserSentry(username, *m_log);
+                 } else {
+-                    return nullptr;
++                    // Anonymous requests will not have a request.name
++                    return new UserSentry("", *m_log);
+                 }
+             }
+         }
+-- 
+2.38.1
+
