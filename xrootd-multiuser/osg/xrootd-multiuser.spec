@@ -1,7 +1,7 @@
 
 Name: xrootd-multiuser
-Version: 2.0.3
-Release: 1.20220421.1%{?dist}
+Version: 2.1.3
+Release: 1.20230717.1%{?dist}
 Summary: Multiuser filesystem writing plugin for xrootd
 
 Group: System Environment/Daemons
@@ -9,13 +9,18 @@ License: BSD
 URL: https://github.com/opensciencegrid/xrootd-multiuser
 # Generated from:
 # git archive v%{version} --prefix=xrootd-multiuser-%{version}/ | gzip -7 > ~/rpmbuild/SOURCES/xrootd-multiuser-%{version}.tar.gz
-#Source0: %{name}-%{version}.tar.gz
-Source0: %{name}-master.tar.gz
-Patch0: 0001-Reorder-variables-to-address-compiler-warning.patch
+Source0: %{name}-%{version}.tar.gz
+#Source0: %{name}-master.tar.gz
+
+Patch0: 0001-Clients-may-use-GSI-unmapped-but-also-use-token-auth.patch
 
 %define xrootd_current_major 5
 %define xrootd_current_minor 2
 %define xrootd_next_major 6
+
+%if 0%{?rhel} > 8
+%global __cmake_in_source_build 1
+%endif
 
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 BuildRequires: xrootd-server-libs >= 1:%{xrootd_current_major}
@@ -38,8 +43,9 @@ Requires: xrootd-server <  1:%{xrootd_next_major}.0.0-1
 %{summary}
 
 %prep
-#%setup -q
-%setup -n %{name}-master -q
+%setup -q
+#%setup -n %{name}-master -q
+
 %patch0 -p1
 
 %build
@@ -54,23 +60,50 @@ make install DESTDIR=$RPM_BUILD_ROOT
 rm -rf $RPM_BUILD_ROOT
 
 %post
+%systemd_post cmsd-privileged@.service
 %systemd_post xrootd-privileged@.service
 
 %preun
+%systemd_preun cmsd-privileged@.service
 %systemd_preun xrootd-privileged@.service
 
 %postun
+%systemd_postun cmsd-privileged@.service
 %systemd_postun xrootd-privileged@.service
 
 %files
 %defattr(-,root,root,-)
 %{_libdir}/libXrdMultiuser-*.so
+%{_unitdir}/cmsd-privileged@.service
 %{_unitdir}/xrootd-privileged@.service
 %{_sysconfdir}/xrootd/config.d/60-osg-multiuser.cfg
 
 %changelog
-* Thu Apr 21 2022 John Thiltges <jthiltges2@unl.edu> - 2.0.3-1.20220421.1
-- Rebuild from master to include PRs #28 and #29
+* Mon Jul 17 2023 John Thiltges <jthiltges2@unl.edu> - 2.1.3-1.20230717.1
+- Include PR #48 with GSI bearer token fix
+
+* Mon Jun 26 2023 Mátyás Selmeci <matyas@cs.wisc.edu> - 2.1.3-1
+- Fail plugin initialization if we can't get the OSS (SOFTWARE-5388)
+- If user cannot be mapped to uid, continue as anonymous
+- Change from named daemon to exec
+
+* Fri Mar 17 2023 Matyas Selmeci <matyas@cs.wisc.edu> - 2.1.2-2
+- Do an in-source build on el9
+
+* Wed Oct 19 2022 Derek Weitzel <dweitzel@unl.edu> - 2.1.2-1
+- Fix user sentry check for anonymous access
+
+* Tue Oct 18 2022 Derek Weitzel <dweitzel@unl.edu> - 2.1.1-1
+- Fix capability handling to per thread
+
+* Wed Sep 21 2022 Derek Weitzel <dweitzel@unl.edu> - 2.1.0-1
+- Support cmsd utilizing multiuser plugin
+- Better error message on failure to get username
+
+* Wed May 04 2022 Carl Edquist <edquist@cs.wisc.edu> - 2.0.4-1
+- Initialize crc32
+- Fix assert in el8 due to vector reserve
+- Reorder variables to address compiler warning/error
 
 * Mon Oct 18 2021 Derek Weitzel <dweitzel@unl.edu> - 2.0.3-1
 - Fix bug in lfn2pfn function

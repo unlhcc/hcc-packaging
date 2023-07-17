@@ -1,0 +1,30 @@
+From 764f2724543bffdb276c994ef969abd1ad968d8e Mon Sep 17 00:00:00 2001
+From: John Thiltges <jthiltges2@unl.edu>
+Date: Thu, 13 Jul 2023 12:04:02 -0500
+Subject: [PATCH 2/2] Clients may use GSI (unmapped), but also use token auth
+
+If an unmapped GSI client has a token, don't consider them anonymous
+---
+ src/UserSentry.hh | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/src/UserSentry.hh b/src/UserSentry.hh
+index 7332932..af613e1 100644
+--- a/src/UserSentry.hh
++++ b/src/UserSentry.hh
+@@ -79,8 +79,10 @@ public:
+             return;
+         }
+ 
+-        // If we used GSI, but user was not mapped by VOMS or gridmap, consider the client anonymous
+-        if (strcmp("gsi", client->prot) == 0) {
++        // If we used GSI, and we didn't get a token,
++        // and user was not mapped by VOMS or gridmap,
++        // consider the client anonymous
++        if (strcmp("gsi", client->prot) == 0 && !got_token) {
+             if (!IsGsiUserMapped(client)) {
+                 log.Emsg("UserSentry", "Anonymous GSI client; cannot change FS UIDs");
+                 m_is_anonymous = true;
+-- 
+2.41.0
+
