@@ -1,7 +1,7 @@
 
 Name: xrootd-multiuser
 Version: 2.1.3
-Release: 1.1.20230721.1%{?dist}
+Release: 1.1.20230721.2%{?dist}
 Summary: Multiuser filesystem writing plugin for xrootd
 
 Group: System Environment/Daemons
@@ -81,6 +81,9 @@ rm -rf $RPM_BUILD_ROOT
 %{_sysconfdir}/xrootd/config.d/60-osg-multiuser.cfg
 
 %changelog
+* Fri Jul 21 2023 John Thiltges <jthiltges2@unl.edu> - 2.1.3-1.1.20230721.2
+- Rebuild against XRootD v5.5
+
 * Fri Jul 21 2023 John Thiltges <jthiltges2@unl.edu> - 2.1.3-1.1.20230721.1
 - Include PR #48 with GSI bearer token fix
 
