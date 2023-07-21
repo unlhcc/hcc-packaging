@@ -1,7 +1,7 @@
 
 Name: xrootd-multiuser
 Version: 2.1.3
-Release: 1.20230717.1%{?dist}
+Release: 1.1.20230721.1%{?dist}
 Summary: Multiuser filesystem writing plugin for xrootd
 
 Group: System Environment/Daemons
@@ -12,7 +12,8 @@ URL: https://github.com/opensciencegrid/xrootd-multiuser
 Source0: %{name}-%{version}.tar.gz
 #Source0: %{name}-master.tar.gz
 
-Patch0: 0001-Clients-may-use-GSI-unmapped-but-also-use-token-auth.patch
+Patch0: 47-thread-specific-supplementary-groups.patch
+Patch1: 0001-Clients-may-use-GSI-unmapped-but-also-use-token-auth.patch
 
 %define xrootd_current_major 5
 %define xrootd_current_minor 2
@@ -33,7 +34,7 @@ BuildRequires: libcap-devel
 BuildRequires: openssl-devel
 BuildRequires: zlib-devel
 %{?systemd_requires}
-# For %{_unitdir} macro
+# For %%{_unitdir} macro
 BuildRequires: systemd
 
 Requires: xrootd-server >= 1:%{xrootd_current_major}.%{xrootd_current_minor}
@@ -47,6 +48,7 @@ Requires: xrootd-server <  1:%{xrootd_next_major}.0.0-1
 #%setup -n %{name}-master -q
 
 %patch0 -p1
+%patch1 -p1
 
 %build
 %cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo .
@@ -79,8 +81,12 @@ rm -rf $RPM_BUILD_ROOT
 %{_sysconfdir}/xrootd/config.d/60-osg-multiuser.cfg
 
 %changelog
-* Mon Jul 17 2023 John Thiltges <jthiltges2@unl.edu> - 2.1.3-1.20230717.1
+* Fri Jul 21 2023 John Thiltges <jthiltges2@unl.edu> - 2.1.3-1.1.20230721.1
 - Include PR #48 with GSI bearer token fix
+
+* Mon Jun 26 2023 Mátyás Selmeci <matyas@cs.wisc.edu> - 2.1.3-1.1
+- Add 47-thread-specific-supplementary-groups.patch
+  (https://github.com/opensciencegrid/xrootd-multiuser/pull/47)
 
 * Mon Jun 26 2023 Mátyás Selmeci <matyas@cs.wisc.edu> - 2.1.3-1
 - Fail plugin initialization if we can't get the OSS (SOFTWARE-5388)
