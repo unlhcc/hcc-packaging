@@ -24,10 +24,8 @@ Patch1: 0001-Clients-may-use-GSI-unmapped-but-also-use-token-auth.patch
 %endif
 
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
-BuildRequires: xrootd-server-libs >= 1:%{xrootd_current_major}.%{xrootd_current_minor}
-BuildRequires: xrootd-server-libs <  1:%{xrootd_next_major}
-BuildRequires: xrootd-server-devel >= 1:%{xrootd_current_major}.%{xrootd_current_minor}
-BuildRequires: xrootd-server-devel <  1:%{xrootd_next_major}
+BuildRequires: xrootd-server-libs = 1:%{xrootd_current_major}.%{xrootd_current_minor}
+BuildRequires: xrootd-server-devel = 1:%{xrootd_current_major}.%{xrootd_current_minor}
 BuildRequires: cmake
 BuildRequires: gcc-c++
 BuildRequires: libcap-devel
