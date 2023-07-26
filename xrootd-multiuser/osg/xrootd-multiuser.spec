@@ -16,7 +16,7 @@ Patch0: 47-thread-specific-supplementary-groups.patch
 Patch1: 0001-Clients-may-use-GSI-unmapped-but-also-use-token-auth.patch
 
 %define xrootd_current_major 5
-%define xrootd_current_minor 2
+%define xrootd_current_minor 5
 %define xrootd_next_major 6
 
 %if 0%{?rhel} > 8
@@ -24,9 +24,9 @@ Patch1: 0001-Clients-may-use-GSI-unmapped-but-also-use-token-auth.patch
 %endif
 
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
-BuildRequires: xrootd-server-libs >= 1:%{xrootd_current_major}
+BuildRequires: xrootd-server-libs >= 1:%{xrootd_current_major}.%{xrootd_current_minor}
 BuildRequires: xrootd-server-libs <  1:%{xrootd_next_major}
-BuildRequires: xrootd-server-devel >= 1:%{xrootd_current_major}
+BuildRequires: xrootd-server-devel >= 1:%{xrootd_current_major}.%{xrootd_current_minor}
 BuildRequires: xrootd-server-devel <  1:%{xrootd_next_major}
 BuildRequires: cmake
 BuildRequires: gcc-c++
