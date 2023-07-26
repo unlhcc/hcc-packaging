@@ -15,8 +15,7 @@ Source0: %{name}-%{version}.tar.gz
 Patch0: 47-thread-specific-supplementary-groups.patch
 Patch1: 0001-Clients-may-use-GSI-unmapped-but-also-use-token-auth.patch
 
-%define xrootd_current_major 5
-%define xrootd_current_minor 5
+%define xrootd_target 5.5
 %define xrootd_next_major 6
 
 %if 0%{?rhel} > 8
@@ -24,8 +23,8 @@ Patch1: 0001-Clients-may-use-GSI-unmapped-but-also-use-token-auth.patch
 %endif
 
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
-BuildRequires: xrootd-server-libs = 1:%{xrootd_current_major}.%{xrootd_current_minor}
-BuildRequires: xrootd-server-devel = 1:%{xrootd_current_major}.%{xrootd_current_minor}
+BuildRequires: xrootd-server-devel >= 1:%{xrootd_target}
+BuildRequires: xrootd-server-devel <  1:%{xrootd_target}.999999999
 BuildRequires: cmake
 BuildRequires: gcc-c++
 BuildRequires: libcap-devel
@@ -35,7 +34,7 @@ BuildRequires: zlib-devel
 # For %%{_unitdir} macro
 BuildRequires: systemd
 
-Requires: xrootd-server >= 1:%{xrootd_current_major}.%{xrootd_current_minor}
+Requires: xrootd-server >= 1:%{xrootd_target}
 Requires: xrootd-server <  1:%{xrootd_next_major}.0.0-1
 
 %description
