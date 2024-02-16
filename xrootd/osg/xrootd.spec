@@ -3,9 +3,21 @@
 
 # OSG additions
 %if 0%{?osg:1}%{!?osg:0}
-    %global _with_compat 1
+    %if 0%{?rhel} < 9 && 0%{!?_without_compat:1}
+        %global _with_compat 1
+    %endif
     %global _with_scitokens 1
+    %global _with_xrdclhttp 1
 %endif
+
+# Set _with_debug to build with debug messages and asserts.  The build will have a .dbg in the Release field.
+# Note! The debug build puts sensitive stuff in the logs -- do not give .dbg builds to external users or promote them to testing.
+# (also keep both % when this is commented out -- rpm still interprets macros in comments)
+#%%global _with_debug 1
+
+# This is the directory the tarball extracts to. This may be "xrootd" or "xrootd-%%{version}" depending on where the tarball was downloaded from.
+# GitHub releases use "xrootd-%%{version}"
+%global build_dir xrootd-%{version}
 
 #-------------------------------------------------------------------------------
 # Helper macros
@@ -70,8 +82,8 @@
 #-------------------------------------------------------------------------------
 Name:      xrootd
 Epoch:     1
-Version:   5.5.0
-Release:   0.rc3.20220822.2%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
+Version:   5.6.7
+Release:   1.2.20240215.1%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
 Summary:   Extended ROOT file server
 Group:     System Environment/Daemons
 License:   LGPLv3+
@@ -82,14 +94,20 @@ URL:       http://xrootd.org/
 # git clone http://xrootd.org/repo/xrootd.git xrootd
 # cd xrootd
 # git-archive master | gzip -9 > ~/rpmbuild/SOURCES/xrootd.tgz
-Source0:   xrootd.tar.gz
+Source0:   xrootd-%{version}.tar.gz
 
-%if 0%{?_with_compat}
+# always include the tarball in the SRPM even if we don't build it because the
+# SRPM build may have a different build environment than the RPM build
 Source1:   xrootd-%{compat_version}.tar.gz
-%endif
 
-Patch0: pr-1767.patch
-Patch1: pr-1765.patch
+# OSG Patches not merged into upstream
+Patch1: 1868-env-hostname-override.patch
+Patch4: SOFTWARE-5800-pelican-url.patch
+
+# Debug Patches
+Patch101: 0003-DEBUG-unset-use-pep517.patch
+
+Patch999: bb0dfcb6ba0614a55659729e357c5920c1e18dea.patch
 
 BuildRoot: %{_tmppath}/%{name}-root
 
@@ -131,6 +149,7 @@ BuildRequires: selinux-policy-devel
 
 %if %{?_with_tests:1}%{!?_with_tests:0}
 BuildRequires: cppunit-devel
+BuildRequires: gtest-devel
 %endif
 
 %if %{?_with_ceph:1}%{!?_with_ceph:0}
@@ -146,10 +165,12 @@ BuildRequires: ceph-devel >= 0.87
 BuildRequires: davix-devel
 %endif
 
+%if 0%{!?_without_doc:1}
 BuildRequires:	doxygen
 BuildRequires:	graphviz
 %if %{?rhel}%{!?rhel:0} == 5
 BuildRequires:	graphviz-gd
+%endif
 %endif
 
 %if %{?_with_clang:1}%{!?_with_clang:0}
@@ -196,6 +217,8 @@ Requires(postun):	initscripts
 
 %if %{?rhel}%{!?rhel:0} == 7
 BuildRequires: devtoolset-7
+%else
+BuildRequires: gcc-c++
 %endif
 
 %description
@@ -374,6 +397,7 @@ Requires:      %{name}-client-libs%{?_isa} = %{epoch}:%{version}-%{release}
 Python 3 bindings for XRootD
 %endif
 
+%if 0%{!?_without_doc:1}
 #-------------------------------------------------------------------------------
 # doc
 #-------------------------------------------------------------------------------
@@ -387,6 +411,7 @@ BuildArch:	noarch
 %description doc
 This package contains the API documentation of the xrootd libraries.
 
+%endif
 #-------------------------------------------------------------------------------
 # selinux
 #-------------------------------------------------------------------------------
@@ -497,12 +522,13 @@ This package contains compatibility binaries for xrootd 4 servers.
 %setup -c -n xrootd-compat -a 1 -T
 %endif
 
-%setup -c -n xrootd
-
-pushd xrootd
-%patch0 -p1
+%setup -c -n %{build_dir}
+cd %{build_dir}
 %patch1 -p1
-popd
+# %%patch101 -p1
+%patch4 -p1
+%patch999 -p1
+cd ..
 
 %build
 
@@ -510,7 +536,7 @@ popd
 . /opt/rh/devtoolset-7/enable
 %endif
 
-cd xrootd
+cd %{build_dir}
 
 %if %{?_with_clang:1}%{!?_with_clang:0}
 export CC=clang
@@ -525,7 +551,7 @@ cmake3 \
 %else
 cmake  \
 %endif
-      -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=%{?_with_debug:Debug}%{!?_with_debug:RelWithDebInfo} \
       -DFORCE_WERROR=TRUE \
 %if %{?_with_tests:1}%{!?_with_tests:0}
       -DENABLE_TESTS=TRUE \
@@ -544,7 +570,8 @@ cmake  \
 %if %{?_with_isal:1}%{!?_with_isal:0}
       -DENABLE_XRDEC=TRUE \
 %endif
-      -DUSER_VERSION=v%{version} \
+      -DXRootD_VERSION_STRING=v%{version} \
+      -DINSTALL_PYTHON_BINDINGS=FALSE \
       ../
 
 make -i VERBOSE=1 %{?_smp_mflags}
@@ -554,7 +581,9 @@ pushd packaging/common
 make -f /usr/share/selinux/devel/Makefile
 popd
 
+%if 0%{!?_without_doc:1}
 doxygen Doxyfile
+%endif
 
 %if 0%{?_with_compat}
 pushd $RPM_BUILD_DIR/xrootd-compat/xrootd*
@@ -585,6 +614,8 @@ popd
 popd
 %endif
 
+%undefine _hardened_build
+
 pushd build/bindings/python
 # build python2 bindings
 %if %{_with_python2}
@@ -595,6 +626,14 @@ pushd build/bindings/python
 %py3_build
 %endif
 popd
+
+%check
+cd %{build_dir}
+%if %{use_cmake3}
+ctest3 --output-on-failure
+%else
+ctest --output-on-failure
+%endif
 
 #-------------------------------------------------------------------------------
 # Installation
@@ -631,7 +670,7 @@ popd
 #-------------------------------------------------------------------------------
 # Install 5.x.y
 #-------------------------------------------------------------------------------
-pushd xrootd
+pushd %{build_dir}
 pushd  build
 make install DESTDIR=$RPM_BUILD_ROOT
 popd
@@ -705,9 +744,11 @@ install -m 644 packaging/common/http.client.conf.example $RPM_BUILD_ROOT%{_sysco
 # client config
 install -m 644 packaging/common/client.conf $RPM_BUILD_ROOT%{_sysconfdir}/xrootd/client.conf
 
+%if 0%{!?_without_doc:1}
 # documentation
 mkdir -p %{buildroot}%{_docdir}/%{name}-%{version}
 cp -pr doxydoc/html %{buildroot}%{_docdir}/%{name}-%{version}
+%endif
 
 # selinux
 mkdir -p %{buildroot}%{_datadir}/selinux/packages/%{name}
@@ -898,9 +939,7 @@ fi
 %{_libdir}/libXrdSecpwd-5.so
 %{_libdir}/libXrdSecsss-5.so
 %{_libdir}/libXrdSecunix-5.so
-%if %{?_with_scitokens:1}%{!?_with_scitokens:0}
 %{_libdir}/libXrdSecztn-5.so
-%endif
 %{_libdir}/libXrdUtils.so.3*
 %{_libdir}/libXrdXml.so.3*
 
@@ -922,7 +961,8 @@ fi
 %{_libdir}/libXrdUtils.so
 %{_libdir}/libXrdXml.so
 %{_includedir}/xrootd/XrdXml/XrdXmlReader.hh
-%{_datadir}/xrootd/cmake
+%{_libdir}/cmake/XRootD
+# %{_datadir}/xrootd/cmake
 
 %files client-libs
 %defattr(-,root,root,-)
@@ -1043,9 +1083,11 @@ fi
 %doc %{_mandir}/man1/libXrdVoms.1.gz
 %doc %{_mandir}/man1/libXrdSecgsiVOMS.1.gz
 
+%if 0%{!?_without_doc:1}
 %files doc
 %defattr(-,root,root,-)
 %doc %{_docdir}/%{name}-%{version}
+%endif
 
 %if %{?_with_ceph:1}%{!?_with_ceph:0}
 %files ceph
@@ -1144,9 +1186,116 @@ fi
 # Changelog
 #-------------------------------------------------------------------------------
 %changelog
-* Mon Aug 22 2022 John Thiltges <jthiltges2@unl.edu> - 5.5.0-0.rc3.20220822.2
-- Add github PR#1767 to fix scitokens username handling on EL8
-- Add github PR#1765 to return permission denied when overwrites are not allowed
+* Mon Feb 12 2024 Mátyás Selmeci <matyas@cs.wisc.edu> - 5.6.7-1.2
+- Bump to rebuild
+
+* Tue Feb 6 2024 Matt Westphall <westphall@wisc.edu> - 5.6.7-1.1
+- OSG release of upstream 5.6.7
+
+* Tue Feb 06 2024 Guilherme Amadio <amadio@cern.ch> - 5.6.7-1
+- XRootD 5.6.7
+
+* Fri Jan 26 2024 Mátyás Selmeci <matyas@cs.wisc.edu> - 5.6.6-1.1
+- Update to 5.6.6 (SOFTWARE-5799)
+- Add patch for pelican:// URL support (SOFTWARE-5800)
+
+* Mon Dec 11 2023 Matt Westphall <westphall@wisc.edu> - 5.6.4-1.1
+- Initial OSG release of upstream 5.6.4-1
+
+* Wed Nov 29 2023 Matt Westphall <westphall@wisc.edu> - 5.6.3-1.4
+- Add 2127-Switch-from-using-a-cert-file-to-a-cert-chain-file.patch (SOFTWARE-5763)
+
+* Mon Nov 13 2023 Mátyás Selmeci <matyas@cs.wisc.edu> - 5.6.3-1.3
+- Add 2118-HTTP-Initialize-SecEntity.addrInfo.patch (SOFTWARE-5748)
+
+* Mon Oct 30 2023 Matt Westphall <westphall@wisc.edu> - 5.6.3-1.2
+- Re-add removed OSG patches (SOFTWARE-5733)
+
+* Fri Oct 27 2023 Matt Westphall <westphall@wisc.edu> - 5.6.3-1.1
+- Initial OSG release of upstream 5.6.3-1 (SOFTWARE-5733)
+
+* Thu Oct 26 2023 Matt Westphall <westphall@wisc.edu> - 5.6.2-2.5
+- Apply patches for supporting chunked PUT requests from devel (SOFTWARE-5733)
+
+* Tue Sep 19 2023 Matt Westphall <westphall@wisc.edu> - 5.6.2-2.2
+- Update to 5.6.2-2 from upstream
+
+* Mon Aug 14 2023 Matt Westphall <westphall@wisc.edu> - 5.6.1-1.2
+- Add patch for PR 2059: Add back parsing of Transfer-Encoding header (SOFTWARE-5623)
+- Add patch for PR 2064: Fix logic error in user mapping (SOFTWARE-5623)
+
+* Mon Jul 17 2023 Mátyás Selmeci <matyas@cs.wisc.edu> - 5.6.1-1.1
+- Update to 5.6.1-1 from upstream and merge OSG changes (SOFTWARE-5623)
+  - Drop 2026-Switch-to-a-fixed-set-of-DH-parameters-compatible-with-older-OpenSSL.patch (upstreamed)
+
+* Mon Jun 12 2023 Mátyás Selmeci <matyas@cs.wisc.edu> - 5.5.5-1.2
+- Add 2026-Switch-to-a-fixed-set-of-DH-parameters-compatible-with-older-OpenSSL.patch (SOFTWARE-5594)
+  for compatibility between EL7 clients and EL9 servers
+- Drop debugging patches
+
+* Wed May 10 2023 Mátyás Selmeci <matyas@cs.wisc.edu> - 5.5.5-1.1
+- Update to 5.5.5-1 from upstream and merge OSG changes (SOFTWARE-5567)
+
+* Tue Mar 28 2023 Mátyás Selmeci <matyas@cs.wisc.edu> - 5.5.4-1.1
+- Update to 5.5.4-1 from upstream and merge OSG changes (SOFTWARE-5539)
+  - Drop 1918-Fix-direct-read-for-PFC.patch (upstreamed)
+  - Drop 1920-XrdHttp-Fix-byte-range-requests.patch (upstreamed)
+
+* Thu Mar 09 2023 Mátyás Selmeci <matyas@cs.wisc.edu> - 5.5.3-1.3
+- Build xrdcl-http (SOFTWARE-5518)
+
+* Tue Feb 21 2023 Mátyás Selmeci <matyas@cs.wisc.edu> - 5.5.3-1.2
+- Update to 5.5.3-1 from upstream and merge OSG patches (SOFTWARE-5436):
+  - Drop 1826-HTTP-TPC-PULL.patch (upstreamed)
+  - Drop voms-mapfile-handle-missing-role.patch (upstreamed)
+- Add 1918-Fix-direct-read-for-PFC.patch
+- Add 1920-XrdHttp-Fix-byte-range-requests.patch
+- Disable compat build on EL9
+
+* Wed Dec 28 2022 Mátyás Selmeci <matyas@cs.wisc.edu> - 5.5.1-1.13
+- Replace SOFTWARE-5418.redirector-hostnames.patch with an updated 1868-env-hostname-override.patch (SOFTWARE-5414/SOFTWARE-5418)
+
+* Tue Dec 27 2022 Carl Edquist <edquist@cs.wisc.edu> - 5.5.1-1.12
+- Another patch update from Brian B (SOFTWARE-5414)
+
+* Thu Dec 22 2022 Brian Lin <blin@cs.wisc.edu> - 5.5.1-1.11
+- Further updates to the redirector hostname patch (SOFTWARE-5418.redirector-hostnames.patch) (SOFTWARE-5418)
+- Drop 1868-env-hostname-override.patch, it is included in the above patch.
+
+* Wed Dec 21 2022 Mátyás Selmeci <matyas@cs.wisc.edu> - 5.5.1-1.10
+- Turn off the debug build.
+- Add 0002-DEBUG-Catch-and-log-exception-launching-voms-mapfile.patch
+
+* Tue Dec 20 2022 Brian Lin <blin@cs.wisc.edu> - 5.5.1-1.9.dbg
+- Update patch to override the IP address with the hostname at the
+  redirector (SOFTWARE-5418)
+
+* Mon Dec 19 2022 Brian Lin <blin@cs.wisc.edu> - 5.5.1-1.8.dbg
+- Add patch to override the IP address with the hostname at the
+  redirector
+
+* Sun Dec 18 2022 Mátyás Selmeci <matyas@cs.wisc.edu> - 5.5.1-1.7.dbg
+- Add DEBUG-Add-some-debug-lines-to-XrdVomsMapfile.patch and do a debug build.
+
+* Thu Dec 15 2022 Carl Edquist <edquist@cs.wisc.edu> - 5.5.1-1.6
+- Add 1868-env-hostname-override.patch (SOFTWARE-5414)
+
+* Wed Nov 16 2022 Mátyás Selmeci <matyas@cs.wisc.edu> - 5.5.1-1.5
+- Add voms-mapfile-handle-missing-role.patch
+
+* Fri Nov 11 2022 Mátyás Selmeci <matyas@cs.wisc.edu> - 5.5.1-1.4
+- Drop patch reverting https://github.com/xrootd/xrootd/pull/1801;
+  instead add 1826-HTTP-TPC-PULL.patch which should fix the issue
+
+* Thu Nov 03 2022 Mátyás Selmeci <matyas@cs.wisc.edu> - 5.5.1-1.3
+- Add logging patch (https://github.com/xrootd/xrootd/pull/1819)
+- Add patch reverting https://github.com/xrootd/xrootd/pull/1801
+
+* Thu Oct 20 2022 Mátyás Selmeci <matyas@cs.wisc.edu> - 5.5.1-1.2
+- Build from 5.5.1 full release (SOFTWARE-5328)
+
+* Tue Aug 30 2022 Carl Edquist <edquist@cs.wisc.edu> - 5.5.1-1.1
+- Build from 5.5.0 (SOFTWARE-5275)
 
 * Thu Aug 18 2022 Mátyás Selmeci <matyas@cs.wisc.edu> - 5.5.0-0.rc3.1
 - Build from 5.5.0-rc3 (SOFTWARE-5275)
