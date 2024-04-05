@@ -82,8 +82,8 @@
 #-------------------------------------------------------------------------------
 Name:      xrootd
 Epoch:     1
-Version:   5.6.7
-Release:   1.2.20240215.1%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
+Version:   5.6.9
+Release:   1.1.20240405.1%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
 Summary:   Extended ROOT file server
 Group:     System Environment/Daemons
 License:   LGPLv3+
@@ -107,7 +107,7 @@ Patch4: SOFTWARE-5800-pelican-url.patch
 # Debug Patches
 Patch101: 0003-DEBUG-unset-use-pep517.patch
 
-Patch999: bb0dfcb6ba0614a55659729e357c5920c1e18dea.patch
+Patch999: 0001-XrdSciTokens-Add-fix-for-tokens-with-a-path-scope-of.patch
 
 BuildRoot: %{_tmppath}/%{name}-root
 
@@ -1186,6 +1186,12 @@ fi
 # Changelog
 #-------------------------------------------------------------------------------
 %changelog
+* Sun Mar 17 2024 Mátyás Selmeci <matyas@cs.wisc.edu> - 5.6.9-1.1
+- Update to 5.6.9 and merge OSG patches (SOFTWARE-5839)
+
+* Fri Feb 23 2024 Matt Westphall <westphall@wisc.edu> - 5.6.8-1.1
+- Initial OSG release of upstream 5.6.8-1
+
 * Mon Feb 12 2024 Mátyás Selmeci <matyas@cs.wisc.edu> - 5.6.7-1.2
 - Bump to rebuild
 
