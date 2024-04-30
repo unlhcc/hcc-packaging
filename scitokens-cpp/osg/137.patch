@@ -1,0 +1,61 @@
+From f87b59c27fc77d1f0e704058bed93ccf50dce7bd Mon Sep 17 00:00:00 2001
+From: John Thiltges <jthiltges2@unl.edu>
+Date: Tue, 23 Apr 2024 13:43:57 -0500
+Subject: [PATCH] Add mutex around key refresh with get_public_keys_from_web()
+
+Limit key refresh to a single simultaneous request to avoid
+overloading issuers.
+---
+ src/scitokens_internal.cpp | 8 +++++++-
+ src/scitokens_internal.h   | 2 ++
+ 2 files changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/src/scitokens_internal.cpp b/src/scitokens_internal.cpp
+index 2e578e6..933c930 100644
+--- a/src/scitokens_internal.cpp
++++ b/src/scitokens_internal.cpp
+@@ -31,6 +31,8 @@ struct CurlRaii {
+ 
+ CurlRaii myCurl;
+ 
++std::mutex key_refresh_mutex;
++
+ } // namespace
+ 
+ namespace scitokens {
+@@ -792,11 +794,15 @@ Validator::get_public_key_pem(const std::string &issuer, const std::string &kid,
+ 
+     if (get_public_keys_from_db(issuer, now, result->m_keys,
+                                 result->m_next_update)) {
+-        if (now > result->m_next_update) {
++        std::unique_lock<std::mutex> lock(key_refresh_mutex, std::defer_lock);
++        // If refresh is due *and* the key refresh mutex is free, try to update
++        if (now > result->m_next_update && lock.try_lock()) {
+             try {
+                 result->m_ignore_error = true;
+                 result = get_public_keys_from_web(
+                     issuer, internal::SimpleCurlGet::default_timeout);
++                // Hold refresh mutex in the new result
++                result->m_refresh_lock = std::move(lock);
+             } catch (std::runtime_error &) {
+                 result->m_do_store = false;
+                 // ignore the exception: we have a valid set of keys already
+diff --git a/src/scitokens_internal.h b/src/scitokens_internal.h
+index 85a4f1f..341d3cd 100644
+--- a/src/scitokens_internal.h
++++ b/src/scitokens_internal.h
+@@ -1,5 +1,6 @@
+ 
+ #include <memory>
++#include <mutex>
+ #include <sstream>
+ #include <unordered_map>
+ 
+@@ -212,6 +213,7 @@ class AsyncStatus {
+     bool m_has_metadata{false};
+     bool m_oauth_fallback{false};
+     AsyncState m_state{DOWNLOAD_METADATA};
++    std::unique_lock<std::mutex> m_refresh_lock;
+ 
+     int64_t m_next_update{-1};
+     int64_t m_expires{-1};
