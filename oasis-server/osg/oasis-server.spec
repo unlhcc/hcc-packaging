@@ -1,7 +1,7 @@
 Summary: OASIS server package
 Name: oasis-server
-Version: 3.7
-Release: 1.20220728.1%{?dist}
+Version: 3.13
+Release: 1%{?dist} 
 Source0: %{name}-%{version}.tar.gz
 License: Apache 2.0
 Group: Development/Libraries
@@ -9,6 +9,7 @@ BuildArch: noarch
 Url: http://www.opensciencegrid.org
 
 Obsoletes: oasis-goc
+Requires: python3-lxml
 
 %description
 This package contains OASIS server software for OSG Operations
@@ -39,13 +40,14 @@ rm -rf $RPM_BUILD_ROOT
 Summary: files for OASIS stratum zero
 Group: Development/Libraries
 
+Requires: oasis-server = %{version}-%{release}
 Obsoletes: oasis-goc-zero
 
 # Require specific versions of packages from osg yum repo so 
 #  they can't be upgraded without being tested first on itb
 Requires: cvmfs-config-osg = 2.5
-Requires: cvmfs = 2.9.2
-Requires: cvmfs-server = 2.9.2
+Requires: cvmfs = 2.11.3
+Requires: cvmfs-server = 2.11.3
 
 %description zero
 This package contains files for oasis.opensciencegrid.org
@@ -63,23 +65,22 @@ This package contains files for oasis.opensciencegrid.org
 Summary: files for OASIS stratum one
 Group: Development/Libraries
 
+Requires: oasis-server = %{version}-%{release}
 Requires: cvmfs-manage-replicas
 Obsoletes: oasis-goc-replica
-Requires: python3-lxml
 
 # Require specific versions of packages from osg yum repo so 
 #  they can't be upgraded without being tested first on itb
 Requires: cvmfs-config-osg = 2.5
-Requires: cvmfs = 2.9.2
-Requires: cvmfs-server = 2.9.2
+Requires: cvmfs = 2.11.3
+Requires: cvmfs-server = 2.11.3
 # Using a specific release (e.g. -2.1) requires adding %{?dist} but
 #  that doesn't work because this builds in the devops dist.  Would
 #  have to instead add a specific osg dist name, e.g. .osg36.
-Requires: frontier-squid = 11:4.15
+Requires: frontier-squid = 11:5.9
 
 %description replica
 This package contains files for oasis-replica.opensciencegrid.org
-Requires: parallel
 
 %files replica
 /etc/cron.d/cvmfs
@@ -121,6 +122,7 @@ done
 Summary: files for OASIS login host
 Group: Development/Libraries
 
+Requires: oasis-server = %{version}-%{release}
 Obsoletes: oasis-goc-login
 
 %description login
@@ -133,6 +135,36 @@ This package contains files for oasis-login.opensciencegrid.org
 
 
 %changelog
+* Tue May 14 2024 Dave Dykstra <dwd@fnal.gov> - 3.13-1
+- Update to cvmfs and cvmfs-server 2.11.3
+
+* Fri Apr  5 2024 Dave Dykstra <dwd@fnal.gov> - 3.12-1
+- Add the "-i" option cvmfs_server check -a to check the integrity of
+  all files.  That makes the data chunk existense check unnecessary,
+  so also add the "-c" option which greatly speeds up the checks.
+- Update to cvmfs and cvmfs-server 2.11.2
+- Update to frontier-squid 5.9
+
+* Thu Jun 29 2023 Dave Dykstra <dwd@fnal.gov> - 3.11-1
+- Remove the "-c" from manage-replicas in generate_replicas, so it will
+  cleanup from failed adds of new repository and so avoid "initial
+  snapshot in progress" warnings from monitoring.
+
+* Thu Mar 23 2023 Dave Dykstra <dwd@fnal.gov> - 3.10-1
+- Make python3 usable on both el7 & el8 by converting python tools from
+  libxml2 to lxml.
+- Require python3-lxml on all hosts.
+- Make each of the subpackages require the main package.
+
+* Tue Mar 21 2023 Dave Dykstra <dwd@fnal.gov> - 3.9-1
+- Update cvmfs & cvmfs-server to 2.10.1, including removing the use
+  of the sem command for snapshots since limiting parallelism is 
+  now built in to cvmfs-server.
+- Update frontier-squid to 5.7
+
+* Tue Aug 16 2022 John Thiltges <jthiltges2@unl.edu> - 3.8-1
+- Add 30-second timeout to urlopen and curl calls (SOFTWARE-5288)
+
 * Thu Jul 28 2022 John Thiltges <jthiltges2@unl.edu> - 3.7-1
 - Convert python 2 to 3 and make EL8 compatible
 
