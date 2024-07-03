@@ -1,0 +1,26 @@
+From badde4c2d7bf83840da18cd0f862e9d40a9cffe9 Mon Sep 17 00:00:00 2001
+From: John Thiltges <jthiltges2@unl.edu>
+Date: Tue, 2 Jul 2024 23:10:07 -0500
+Subject: [PATCH] [XrdHttp] Apply keepalive when redirecting HTTP clients
+
+Leave connection open after redirection if keepalive is enabled
+---
+ src/XrdHttp/XrdHttpReq.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/XrdHttp/XrdHttpReq.cc b/src/XrdHttp/XrdHttpReq.cc
+index ab12adcf5..51e23cd78 100644
+--- a/src/XrdHttp/XrdHttpReq.cc
++++ b/src/XrdHttp/XrdHttpReq.cc
+@@ -618,7 +618,7 @@ bool XrdHttpReq::Redir(XrdXrootd::Bridge::Context &info, //!< the result context
+     prot->SendSimpleResp(302, NULL, (char *) redirdest.c_str(), 0, 0, keepalive);
+   
+   reset();
+-  return false;
++  return keepalive;
+ };
+ 
+ 
+-- 
+2.45.2
+
