@@ -83,7 +83,7 @@
 Name:      xrootd
 Epoch:     1
 Version:   5.6.9
-Release:   1.6.20240703.1%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
+Release:   1.6.20240723.1%{?dist}%{?_with_clang:.clang}%{?_with_asan:.asan}
 Summary:   Extended ROOT file server
 Group:     System Environment/Daemons
 License:   LGPLv3+
@@ -113,7 +113,8 @@ Patch10: 2269-defer-or-disable-tls-client-auth-3.patch
 # Debug Patches
 Patch101: 0003-DEBUG-unset-use-pep517.patch
 
-Patch999: 0001-XrdHttp-Apply-keepalive-when-redirecting-HTTP-client.patch
+Patch990: 0001-XrdHttp-Apply-keepalive-when-redirecting-HTTP-client.patch
+Patch991: 0002-XrdHttp-Save-keepalive-state-before-calling-reset.patch
 
 BuildRoot: %{_tmppath}/%{name}-root
 
@@ -539,7 +540,8 @@ cd %{build_dir}
 %patch8 -p1
 %patch9 -p1
 %patch10 -p1
-%patch999 -p1
+%patch990 -p1
+%patch991 -p1
 cd ..
 
 %build
@@ -1198,8 +1200,8 @@ fi
 # Changelog
 #-------------------------------------------------------------------------------
 %changelog
-* Wed Jul 03 2024 John Thiltges <jthiltges2@unl.edu> - 1.6.20240703.1
-- Honor HTTP keepalive when redirecting
+* Tue Jul 23 2024 John Thiltges <jthiltges2@unl.edu> - 5.6.9.20240723.1
+- Honor HTTP keepalive when redirecting, and more
 
 * Thu May 30 2024 Mátyás Selmeci <matyas@cs.wisc.edu> - 5.6.9-1.6
 - Split 2269-defer-or-disable-tls-client-auth.patch into 3 patches
